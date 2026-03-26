@@ -1,0 +1,34 @@
+# EDA of birth and fertility in Singapore from 1960-2024
+
+Load packages and data
+
+```{r}
+pacman::p_load(fpp3, skimr, tsibble)
+BFR <- read_csv("BirthsAndFertilityRatesAnnual.csv")
+```
+
+Select the data we will be using in this report
+
+```{r}
+BFR_ts <- BFR %>%
+  filter(DataSeries %in% c("Total Fertility Rate (TFR)", "Total Live-Births")) %>%
+  select(DataSeries, `1960`:`2024`) %>%
+  mutate(across(`1960`:`2024`, as.numeric)) %>%
+  pivot_longer(
+    cols = `1960`:`2024`,
+    names_to = "Year",
+    values_to = "Value"
+  ) %>%
+  mutate(Year = as.integer(Year)) %>%
+  pivot_wider(
+    names_from = DataSeries,
+    values_from = Value
+  ) %>%
+  as_tsibble(index = Year)
+```
+
+Now to check if there are any missing values or anything strange happening with the data.
+
+```{r}
+glimpse(BFR_long)
+```
