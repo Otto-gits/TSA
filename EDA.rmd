@@ -9,43 +9,138 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## 
-
 # EDA of birth and fertility in Singapore from 1960-2024
 
 ### Introduction & Research Questions
 
-This is the EDA conducted on birth and ferility data from Singapore from 1960-2024. We will be looking at 2 data series' across that time period. Tot
+This is the EDA conducted on birth and fertility data from Singapore from 1960-2024. We will be looking at 2 data series' which were recorded anually: Total Live Births (TLB) & Total Fertility Rate (TFR).
+
+1.  How has the total fertility rate changed in Singapore from 1960 to 2024?
+2.  What is the relationship between Total Live Births and Total Fertility Rate and do they show the same temporal behavior?
+3.  Are these series stationary across the time period?
 
 ### Data Description & Cleaning
 
 Load packages and data
 
-```{r} pacman::p_load(fpp3, skimr, tsibble, dplyr, readr) BFR <- read_csv("BirthsAndFertilityRatesAnnual.csv")}
+```{r}
+pacman::p_load(fpp3, skimr, tsibble, dplyr, readr) 
+BFR <- read_csv("BirthsAndFertilityRatesAnnual.csv")
 ```
 
-Transform the data set to just be the rows and columns needed for this report and into a tsibble.
+The following code transforms the ingested data into a more usable format of just the rows and columns we need and changes the names to be easier to use.
 
-```{r} BFR <- BFR |>   filter(DataSeries %in% c("Total Fertility Rate (TFR)", "Total Live-Births")) |>   mutate(DataSeries = recode(DataSeries,     "Total Fertility Rate (TFR)" = "TFR",     "Total Live-Births" = "TLB"   )) |>   select(DataSeries, `1960`:`2024`) |>   mutate(across(`1960`:`2024`, as.numeric)) |>   pivot_longer(     cols = `1960`:`2024`,     names_to = "Year",     values_to = "Value"   ) |>   mutate(Year = as.integer(Year)) |>   pivot_wider(     names_from = DataSeries,     values_from = Value   ) |>   as_tsibble(index = Year)  BFR}
+```{r}
+BFR <- BFR |>   
+  filter(DataSeries %in% c("Total Fertility Rate (TFR)", "Total Live-Births")) |> 
+  mutate(DataSeries = 
+  recode(DataSeries,
+         "Total Fertility Rate (TFR)" = "TFR",
+         "Total Live-Births" = "TLB"  )) |>   
+  select(DataSeries, `1960`:`2024`) |>   
+  mutate(across(`1960`:`2024`, as.numeric)) |>   
+  pivot_longer(     
+    cols = `1960`:`2024`,     
+    names_to = "Year",     
+    values_to = "Value") |>   
+  mutate(Year = as.integer(Year)) |>   
+  pivot_wider(     
+    names_from = DataSeries,     
+    values_from = Value   ) |>   
+  as_tsibble(index = Year)  
+
+BFR
 ```
 
 Now to check if there are any missing values or anything strange happening with the data.
 
-```{r} glimpse(BFR)}
-```
-
-```{r} summary(BFR)}
+```{r}
+glimpse(BFR)
+summary(BFR)
 ```
 
 ### Time Series Feature Analysis
 
-```{r} BFR |>   autoplot(TFR)  BFR |>   autoplot(TLB)}
+Here are some graphs of the TFR and TLB across the time period. Both TFR and TLB show decreasing trends since 1960. TFR's decrease is a very steep from its peak in 1960 to 1975 then it seems to level off at a lower fertility rate. This will suggest non-stationarity in the mean. TLB also declines overall with more fluctuation that TFR suggesting an increase in overall population level at points throughout the series.
+
+```{r}
+BFR |>   
+  autoplot(TFR)  
+BFR |>   
+  autoplot(TLB)
 ```
 
-```{r} BFR |>   ACF(TFR) |>   autoplot() BFR |>   ACF(TLB) |>   autoplot()}
+Both of the following ACF plots show a slow decay across lags. This supports the earlier theory of non-stationarity due to a changing mean.
+
+```{r}
+BFR |>   
+  ACF(TFR) |>   
+  autoplot() 
+BFR |>   
+  ACF(TLB) |>   
+  autoplot()
 ```
 
-```{r} ggplot(BFR, aes(x = TFR, y = TLB)) +   geom_point() +   geom_smooth(method = "lm")}
+As discussed in section 1.5.1 of Introduction to Time Series Analysis, with an absence of seasonality to eliminate a trend and make the series stationary we have two options; to fit a polynomial trend and then subtract from the data or to apply differencing. Differencing is preferred since it does not assume a consistent form of the trend in the data. So to transform the data into a stationary series we will apply differencing.
+
+```{r}
+BFR_diff <- BFR |>
+  mutate(
+    d_TFR = difference(TFR),
+    d_TLB = difference(TLB)
+  )
+
 ```
+
+```{r}
+BFR_diff |>
+  autoplot(d_TFR)
+
+BFR_diff |>
+  autoplot(d_TLB)
+```
+
+After applying first differencing we see that both TLB and TFR seem to fluctuate around a constant mean, this shows that the decreasing trend we saw earlier has been removed.
+
+```{r}
+BFR_diff |>
+  ACF(d_TFR) |>
+  autoplot()
+
+BFR_diff |>
+  ACF(d_TLB) |>
+  autoplot()
+```
+
+The auto correlation functions of the differenced series are much smaller and decrease much more rapidly than the previous iteration and so this also supports the stationarity of the data.
+
+### Time Series Features
+
+This series shows a strong downward trends, indicating a changing mean over time and as such non-stationarity. No seasonal patterns are seen due to the frequency of the data. The autocorrelation shows a strong persistence prior to differencing which removes much of the dependence.
+
+### Relationship of TFR and TLB
+
+Below you will see a scatter plot of the relationship between TFR and TLB this is to answer the second research question about the relationship between our series.
+
+```{r}
+ggplot(BFR, aes(x = TFR, y = TLB)) +   
+  geom_point() +   
+  geom_smooth(method = "lm")
+```
+
+The trend in the scatterplot is positive. This says that higher fertility rates correlate to higher total live births. However, the spread of the data suggests that there are more factors to TLB than just fertility rate.
+
+## Limitations
+
+This analysis has a couple of limitations due to the data source and its nature. The data comes in annually and so we cannot see within year trends or seasonality. The total live births are also influenced by other factors than TFR, such as population size and the age demographic of the population. As we are not looking at all the factors we cannot definitively interpret the complete nature of the relationship.
+
+### Summary of Findings
+
+In summary both TFR and TLB showed signs of non-stationarity and downward trends from 1960-2024. The autocorrelation functions of both series shows temporal dependence. The first differencing removes the trend component of the data and therefore makes the data non-stationary. There is a positive trend between TLB and TFR, however, there are more factors influencing TLB and they need to be considered as we build a prediction model for these time series.
 
 ### Statistical Appendix
+
+**Stationarity**: A time series is stationary if it has constance mean and variance across time.
+**ACF (Autocorrelation Function):** Measures the correlation between each observation at different time lags
+**Differencing**: A transformation of data defined as $\nabla X_t = X_t - X_{t-1} = (1 - B)X_t$ where $B$ is the backward shift operator $BX_t=X_{t-1}$. This transformation aims to remove trends in non seasonal data and stabalise the mean across the series. 
+**Lag:** The number of fixed time displacement between an observation and a previous value in the dataset.  
