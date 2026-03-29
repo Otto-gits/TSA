@@ -4,6 +4,12 @@
 
 # EDA of birth and fertility in Singapore from 1960-2024
 
+### Introduction & Research Questions
+
+This is the EDA conducted on birth and ferility data from Singapore from 1960-2024. We will be looking at 2 data series' across that time period. Tot
+
+### Data Description & Cleaning
+
 Load packages and data
 
 ```{r}
@@ -47,6 +53,8 @@ glimpse(BFR)
 summary(BFR)
 ```
 
+### Time Series Feature Analysis
+
 ```{r}
 BFR |>
   autoplot(TFR)
@@ -69,3 +77,5 @@ ggplot(BFR, aes(x = TFR, y = TLB)) +
   geom_point() +
   geom_smooth(method = "lm")
 ```
+
+### Statistical Appendix
