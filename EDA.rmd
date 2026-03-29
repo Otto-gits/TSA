@@ -1,6 +1,15 @@
 ---
+title: "EDA"
+author: "Otto"
+date: "`r Sys.Date()`"
+output: pdf_document
 ---
----
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 
 
 # EDA of birth and fertility in Singapore from 1960-2024
 
@@ -12,70 +21,31 @@ This is the EDA conducted on birth and ferility data from Singapore from 1960-20
 
 Load packages and data
 
-```{r}
-pacman::p_load(fpp3, skimr, tsibble, dplyr, readr)
-BFR <- read_csv("BirthsAndFertilityRatesAnnual.csv")
+```{r} pacman::p_load(fpp3, skimr, tsibble, dplyr, readr) BFR <- read_csv("BirthsAndFertilityRatesAnnual.csv")}
 ```
 
 Transform the data set to just be the rows and columns needed for this report and into a tsibble.
 
-```{r}
-BFR <- BFR |>
-  filter(DataSeries %in% c("Total Fertility Rate (TFR)", "Total Live-Births")) |>
-  mutate(DataSeries = recode(DataSeries,
-    "Total Fertility Rate (TFR)" = "TFR",
-    "Total Live-Births" = "TLB"
-  )) |>
-  select(DataSeries, `1960`:`2024`) |>
-  mutate(across(`1960`:`2024`, as.numeric)) |>
-  pivot_longer(
-    cols = `1960`:`2024`,
-    names_to = "Year",
-    values_to = "Value"
-  ) |>
-  mutate(Year = as.integer(Year)) |>
-  pivot_wider(
-    names_from = DataSeries,
-    values_from = Value
-  ) |>
-  as_tsibble(index = Year)
-
-BFR
+```{r} BFR <- BFR |>   filter(DataSeries %in% c("Total Fertility Rate (TFR)", "Total Live-Births")) |>   mutate(DataSeries = recode(DataSeries,     "Total Fertility Rate (TFR)" = "TFR",     "Total Live-Births" = "TLB"   )) |>   select(DataSeries, `1960`:`2024`) |>   mutate(across(`1960`:`2024`, as.numeric)) |>   pivot_longer(     cols = `1960`:`2024`,     names_to = "Year",     values_to = "Value"   ) |>   mutate(Year = as.integer(Year)) |>   pivot_wider(     names_from = DataSeries,     values_from = Value   ) |>   as_tsibble(index = Year)  BFR}
 ```
 
 Now to check if there are any missing values or anything strange happening with the data.
 
-```{r}
-glimpse(BFR)
+```{r} glimpse(BFR)}
 ```
 
-```{r}
-summary(BFR)
+```{r} summary(BFR)}
 ```
 
 ### Time Series Feature Analysis
 
-```{r}
-BFR |>
-  autoplot(TFR)
-
-BFR |>
-  autoplot(TLB)
+```{r} BFR |>   autoplot(TFR)  BFR |>   autoplot(TLB)}
 ```
 
-```{r}
-BFR |>
-  ACF(TFR) |>
-  autoplot()
-BFR |>
-  ACF(TLB) |>
-  autoplot()
+```{r} BFR |>   ACF(TFR) |>   autoplot() BFR |>   ACF(TLB) |>   autoplot()}
 ```
 
-```{r}
-ggplot(BFR, aes(x = TFR, y = TLB)) +
-  geom_point() +
-  geom_smooth(method = "lm")
+```{r} ggplot(BFR, aes(x = TFR, y = TLB)) +   geom_point() +   geom_smooth(method = "lm")}
 ```
 
 ### Statistical Appendix
