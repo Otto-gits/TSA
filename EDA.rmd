@@ -19,6 +19,8 @@ This is the EDA conducted on birth and fertility data from Singapore from 1960-2
 2.  What is the relationship between Total Live Births and Total Fertility Rate and do they show the same temporal behavior?
 3.  Are these series stationary across the time period?
 
+We can answer each of these research questions through a basic plot of the data over time and a comparison and plotting of each variable against each other. We will use a simple linear regression to achieve this.
+
 ### Data Description & Cleaning
 
 Load packages and data
@@ -57,11 +59,16 @@ Now to check if there are any missing values or anything strange happening with 
 ```{r}
 glimpse(BFR)
 summary(BFR)
+colSums(is.na(BFR))
 ```
+
+The outputs show that there are 65 distinct observations for each year with no missing or out of the ordinary values in the data set.
+
+Since the data is annual we will not be able to see specific seasonality within each year.
 
 ### Time Series Feature Analysis
 
-Here are some graphs of the TFR and TLB across the time period. Both TFR and TLB show decreasing trends since 1960. TFR's decrease is a very steep from its peak in 1960 to 1975 then it seems to level off at a lower fertility rate. This will suggest non-stationarity in the mean. TLB also declines overall with more fluctuation that TFR suggesting an increase in overall population level at points throughout the series.
+Here are some graphs of the TFR and TLB across the time period. Both TFR and TLB show decreasing trends since 1960. TFR's decrease is a very steep from its peak in 1960 to 1975 then it seems to level off at a lower fertility rate. This will suggest non-stationarity in the mean. TLB also declines overall with more fluctuation that TFR suggesting an increase in overall population level at points throughout the series. The rate of decline across both TFR and TLB is similar at the start however the increase bump around 1985 is much stronger in TLB rather than the light bump we see in the fertility rate. They also have a different structure with TLB being more variable and TFR having a more consistent drop off after 1985.
 
 ```{r}
 BFR |>   
@@ -120,7 +127,7 @@ This series shows a strong downward trends, indicating a changing mean over time
 
 ### Relationship of TFR and TLB
 
-Below you will see a scatter plot of the relationship between TFR and TLB this is to answer the second research question about the relationship between our series.
+Below you will see a scatter plot of the relationship between TFR and TLB this is to answer the second research question about the relationship between our series. We will use a simple linear regression to fit a line to predict the relationship between TFR and TLB.
 
 ```{r}
 ggplot(BFR, aes(x = TFR, y = TLB)) +   
@@ -130,17 +137,23 @@ ggplot(BFR, aes(x = TFR, y = TLB)) +
 
 The trend in the scatterplot is positive. This says that higher fertility rates correlate to higher total live births. However, the spread of the data suggests that there are more factors to TLB than just fertility rate.
 
-## Limitations
+### Limitations
 
 This analysis has a couple of limitations due to the data source and its nature. The data comes in annually and so we cannot see within year trends or seasonality. The total live births are also influenced by other factors than TFR, such as population size and the age demographic of the population. As we are not looking at all the factors we cannot definitively interpret the complete nature of the relationship.
 
 ### Summary of Findings
 
-In summary both TFR and TLB showed signs of non-stationarity and downward trends from 1960-2024. The autocorrelation functions of both series shows temporal dependence. The first differencing removes the trend component of the data and therefore makes the data non-stationary. There is a positive trend between TLB and TFR, however, there are more factors influencing TLB and they need to be considered as we build a prediction model for these time series.
+In summary both TFR and TLB showed signs of non-stationarity and downward trends from 1960-2024. The autocorrelation functions of both series shows temporal dependence. The first differencing removes the trend component of the data and therefore makes the data more stationary. There is a positive trend between TLB and TFR, however, there are more factors influencing TLB and they need to be considered as we build a prediction model for these time series.
 
 ### Statistical Appendix
 
 **Stationarity**: A time series is stationary if it has constance mean and variance across time.
+
 **ACF (Autocorrelation Function):** Measures the correlation between each observation at different time lags
-**Differencing**: A transformation of data defined as $\nabla X_t = X_t - X_{t-1} = (1 - B)X_t$ where $B$ is the backward shift operator $BX_t=X_{t-1}$. This transformation aims to remove trends in non seasonal data and stabalise the mean across the series. 
-**Lag:** The number of fixed time displacement between an observation and a previous value in the dataset.  
+
+**Differencing**: A transformation of data defined as $\nabla X_t = X_t - X_{t-1} = (1 - B)X_t$ where $B$ is the backward shift operator $BX_t=X_{t-1}$. This transformation aims to remove trends in non seasonal data and stabalise the mean across the series.
+
+**Lag:** The number of fixed time displacement between an observation and a previous value in the dataset.
+
+\
+**Simple Linear Regression:** Is a model which is used to model the relationship between two variables. The model is defined as $Y_i=\beta_0+\beta_1 X_i + \epsilon_i$; where $Y_i$ is the response variable (TLB), $X_i$ is the predictor variable (TFR), $\beta_0$ is the intercept value, $\beta_1$ is the slope coefficient representing the change in $Y$ with a 1 unit increase in $X$, and $\epsilon$ is the error term assumed to have a mean of 0 and a constant variance across all observations.
