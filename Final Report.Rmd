@@ -1,0 +1,75 @@
+---
+title: "Statistical Report"
+author: "Otto"
+date: "`r Sys.Date()`"
+output: pdf_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+pacman::p_load(fpp3, skimr, tsibble, dplyr, readr) 
+BFR <- read_csv("BirthsAndFertilityRatesAnnual.csv")
+```
+
+# Statistical Report on Fertility Data in Singapore
+
+```{r}
+BFR <- BFR |>   
+  filter(DataSeries %in% c("Total Fertility Rate (TFR)", "Total Live-Births")) |> 
+  mutate(DataSeries = 
+  recode(DataSeries,
+         "Total Fertility Rate (TFR)" = "TFR",
+         "Total Live-Births" = "TLB"  )) |>   
+  select(DataSeries, `1960`:`2024`) |>   
+  mutate(across(`1960`:`2024`, as.numeric)) |>   
+  pivot_longer(     
+    cols = `1960`:`2024`,     
+    names_to = "Year",     
+    values_to = "Value") |>   
+  mutate(Year = as.integer(Year)) |>   
+  pivot_wider(     
+    names_from = DataSeries,     
+    values_from = Value   ) |>   
+  as_tsibble(index = Year)
+
+train <- BFR |> filter(Year <= 2012)
+test  <- BFR |> filter(Year >= 2013)
+```
+
+## Abstract
+
+## Introduction
+
+**Can historical time series patterns in Singapore’s Total Fertility
+Rate and Total Live Births from 1960–2012 accurately forecast the
+observed period from 2013–2024?**
+
+```{r tfr-plot, fig.cap="Total Fertility Rate in Singapore, 1960–2024", results='markup'}
+BFR |>
+  autoplot(TFR)
+
+```
+```{r}
+BFR |>
+  autoplot(TLB)
+```
+```{r}
+
+```
+
+## Methods
+
+
+
+## Results
+
+## Discussion
+
+## Conclusion
+
+## References
+
+## Appendices if applicable.

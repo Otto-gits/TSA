@@ -1,5 +1,6 @@
 ---
 title: "EDA"
+subtitle: "[GitHub Repository](https://github.com/Otto-gits/TSA)"
 author: "Otto"
 date: "`r Sys.Date()`"
 output: pdf_document
