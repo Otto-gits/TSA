@@ -69,3 +69,73 @@ BFR_diff |>
 BFR_diff |>   
   PACF(d_TLB) |>   
   autoplot()
+
+BFR |>
+  features(log(TFR), unitroot_kpss)
+
+BFR |>
+  features(log(TLB), unitroot_kpss) 
+
+BFR_diff2 <- BFR |>
+  mutate(
+    dd_TFR = difference(TFR, differences = 2),
+    dd_TLB = difference(TLB, differences = 2)
+  )
+
+
+BFR_diff2 |>
+  features(dd_TFR, unitroot_kpss)
+
+BFR_diff2 |>
+  features(dd_TLB, unitroot_kpss) 
+
+
+BFR_diff2 |>   
+  ACF(dd_TFR) |>   
+  autoplot() 
+BFR_diff2 |>   
+  ACF(dd_TLB) |>   
+  autoplot()
+
+BFR_diff2 |>   
+  PACF(dd_TFR) |>   
+  autoplot() 
+BFR_diff2 |>   
+  PACF(dd_TLB) |>   
+  autoplot()
+
+
+BFR_logdiff <- BFR |>
+  mutate(
+    d_log_TFR = difference(log(TFR), differences = 1),
+    d_log_TLB = difference(log(TLB), differences = 1)
+  )
+
+BFR_logdiff |>
+  features(d_log_TFR, unitroot_kpss)
+
+BFR_logdiff |>
+  features(d_log_TLB, unitroot_kpss)
+
+BFR_logdiff |>
+  ACF(d_log_TFR) |>
+  autoplot()
+
+BFR_logdiff |>
+  ACF(d_log_TLB) |>
+  autoplot()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
