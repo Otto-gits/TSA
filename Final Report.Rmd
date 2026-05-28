@@ -49,9 +49,8 @@ test  <- BFR |> filter(Year >= 2013)
 
 ## Introduction
 
-**Can historical time series patterns in Singapore’s Total Fertility
-Rate and Total Live Births from 1960–2012 accurately forecast the
-observed period from 2013–2024?**
+**Can time series models trained on data from 1960–2012 accurately
+forecast Singapore's continuing fertility decline over 2013–2024?**
 
 ```{r tfr-plot, fig.cap="Total Fertility Rate in Singapore, 1960–2024", results='markup'}
 BFR |>
@@ -60,19 +59,40 @@ BFR |>
   autoplot(d_log_TFR)
 
 ```
+
 ```{r}
 BFR |>
   autoplot(TLB)
 BFR |> 
   autoplot(d_log_TLB)
 ```
+
 ```{r}
 
 ```
 
 ## Methods
 
+- What the data is
 
+<!-- -->
+
+- talk about how the model's were chosen
+
+  - Looked at transformation to make the data stationary
+
+  - Then chose to log diff as it had the best \_ stationarity i think
+
+    - The log transformation addresses **variance non-stationarity**,
+      and the differencing addresses **mean non-stationarity** (the
+      trend). They solve different problems. The KPSS test would confirm
+      mean-stationarity after differencing, not "best stationarity"
+      between log-diff and plain-diff.
+
+  - The data still had trend for yr=12 (zodiac i think)
+
+  - So informed decision to try ARMIA (12,x, y) and SARIMA models
+    potentially
 
 ## Results
 

@@ -231,9 +231,6 @@ fit_tfr_high <- train |>
     tfr_ar13_log = ARIMA(log(TFR) ~ 0 + pdq(13, 1, 0),
                          order_constraint = TRUE),
     
-    tfr_ar12ma1_log = ARIMA(log(TFR) ~ 0 + pdq(12, 1, 1),
-                            order_constraint = TRUE),
-    
     tfr_ar13ma1_log = ARIMA(log(TFR) ~ 0 + pdq(13, 1, 1),
                             order_constraint = TRUE),
     
