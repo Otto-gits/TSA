@@ -40,9 +40,6 @@ BFR <- BFR |>
     d_log_TFR = difference(log(TFR), differences = 1),
     d_log_TLB = difference(log(TLB), differences = 1)
   )
-
-train <- BFR |> filter(Year <= 2012)
-test  <- BFR |> filter(Year >= 2013)
 ```
 
 ## Abstract
@@ -52,33 +49,84 @@ test  <- BFR |> filter(Year >= 2013)
 **Can time series models trained on data from 1960–2012 accurately
 forecast Singapore's continuing fertility decline over 2013–2024?**
 
-```{r tfr-plot, fig.cap="Total Fertility Rate in Singapore, 1960–2024", results='markup'}
-BFR |>
-  autoplot(TFR)
-BFR |> 
-  autoplot(d_log_TFR)
 
-```
 
-```{r}
-BFR |>
-  autoplot(TLB)
-BFR |> 
-  autoplot(d_log_TLB)
-```
 
-```{r}
-
-```
 
 ## Methods
 
+3.1 Data preparation\
+- Describe TFR and TLB.\
+- Explain reshaping into annual time series.\
+- Define training period 1960–2012 and testing period 2013–2024.\
+
+The modelling workflow was designed to answer our forecasting needs. The TFR and TLB series were extracted from the dataset, reshaped into annual time series from 1960–2024 and split into a training period from 1960–2012 and a testing period from 2013–2024.
+
+```{r}
+train <- BFR |> filter(Year <= 2012)
+test  <- BFR |> filter(Year >= 2013)
+```
+
+
+Time plots, Kwiatkowski-Phillips-Schmidt-Shin (KPSS) tests and ACF/PACF plots of the two series were used to check for trends, changes in variance and overall appropriateness for ARIMA modelling. Both series showed evidence of non-stationarity and since ARIMA models require the time series to be stationary, transformation of the series was necessary prior to modelling. 
+```{r tfr-plot, fig.cap="Annual Total Fertility Rate in Singapore, 1960–2024"}
+BFR |>
+  autoplot(TFR) +
+  labs(y = "Total Fertility Rate", x = "Year")
+```
+
+
+```{r tlb-plot, fig.cap="Total Live Births in Singapore, 1960–2024"}
+BFR |>
+  autoplot(TLB)+
+  labs(y= "Total Liver Births", x = "Year")
+```
+
+Both series were then transformed using either just the log or the log with first or second differencing. These transformed series were then tested by the KPSS test, residual plots and looking at the ACF and PACF plots of the series to ensure that the transformation improves the stationarity. 
+
+The KPSS test is used for testing whether a given time series is stationary (Should I go into more detail or is this the level or should it be in the appendix if it is?). The time series' are logged to scale the variance proportionally if there is a trend so to keep relative magnitude of changes in the data in the mind of the model. Differencing is used for the removal of any trends inside the data because 
+
+\
+3.2 Transformation and stationarity assessment\
+- Explain why stationarity matters for ARIMA modelling.\
+- Mention original, log, differenced, second-differenced, and
+log-differenced series.\
+- Explain KPSS test.\
+- Justify log transformation for variance stabilisation.\
+- Justify differencing for trend removal.\
+- State that log-first-differencing was retained as a primary candidate
+transformation, while second-differenced models were considered as
+comparisons.\
+\
+
+
+
+
+
+3.3 Model identification\
+- Explain use of ACF and PACF.\
+- State that transformed series showed dependence around lags 11–13.\
+- Explain why low-order ARIMA models were used only as baselines.\
+- Explain why higher-lag ARIMA and SARIMA period-12 models were
+considered.\
+\
+3.4 Model estimation and diagnostics\
+- Explain models fitted on training data only.\
+- State model viability criteria: white noise residuals, residual
+ACF/PACF, Ljung–Box.\
+- State that models with remaining lag-12 residual autocorrelation were
+rejected.\
+\
+3.5 Forecast evaluation\
+- Forecast 2013–2024.\
+- Compare with observed values.\
+- Use RMSE, MAE, SSE/AICc.\
+- Select final model based on residual viability first, then forecast
+accuracy and simplicity.
+
 - What the data is
-
-<!-- -->
-
+- 
 - talk about how the model's were chosen
-
   - Looked at transformation to make the data stationary
 
   - Then chose to log diff as it had the best \_ stationarity i think
@@ -89,10 +137,57 @@ BFR |>
       mean-stationarity after differencing, not "best stationarity"
       between log-diff and plain-diff.
 
+    - ::: {}
+      ### **Is the log transform justified?**
+      :::
+
+      Yes, clearly. TFR's coefficient of variation drops from **0.47 to
+      0.16** between the early and late periods — the variance shrinks
+      dramatically as the level drops. You can see this in the
+      first-diff plot (large swings in 1960–1975, small swings after).
+      The log-diff plot has much more stable amplitude across the full
+      series. For TLB, the case is weaker (CV goes from 0.16 to 0.11)
+      but the log doesn't hurt and keeps both series on the same scale.
+
+      ### **Is one difference enough?**
+
+      This is the one wrinkle. The KPSS results:
+
+      | **Transformation** | **TFR p-value**       | **TLB p-value** |
+      |:-------------------|:----------------------|:----------------|
+      | First diff         | 0.01 (reject)         | 0.10 (pass)     |
+      | Log + first diff   | **0.04 (borderline)** | 0.10 (pass)     |
+      | Double diff        | 0.10 (pass)           | 0.10 (pass)     |
+
+      For TFR, log-diff is borderline at p = 0.04 — technically still
+      rejects KPSS at the 0.05 level. Double differencing passes
+      cleanly. This is why `ARIMA()` auto-selected d = 2 for TFR.
+
+      However, your SARIMA models with d = 1 on the log scale **pass the
+      Ljung-Box test** and produce good forecasts. The KPSS test with
+      only 53 annual observations has limited precision, and the
+      borderline p = 0.04 isn't damning. Double differencing (bottom
+      plot) looks noisier and risks over-differencing.
+
+      ### **Bottom line**
+
+      **Log + first difference is defensible** — the log is
+      well-justified by variance stabilisation, and d = 1 is adequate
+      given that the fitted models achieve white noise residuals. In
+      your report, you should acknowledge the borderline KPSS result for
+      TFR and explain that you chose d = 1 because (a) the fitted SARIMA
+      models pass Ljung-Box, and (b) double differencing risks
+      over-differencing with a short series.
+
   - The data still had trend for yr=12 (zodiac i think)
 
   - So informed decision to try ARMIA (12,x, y) and SARIMA models
     potentially
+
+| Series | Models |
+|----|----|
+| TFR | SARIMA(0,1,1)(1,0,0)[12], SARIMA(1,1,1)(1,0,0)[12], SARIMA(1,2,1)(1,0,0)[12] |
+| TLB | SARIMA(0,1,1)(1,0,0)[12], SARIMA(1,1,1)(1,0,0)[12], SARIMA(0,2,1)(1,0,0)[12] |
 
 ## Results
 

@@ -179,13 +179,35 @@ fit_tfr_base |>
 fit_tlb_base |>
   glance() |>
   arrange(AICc)
-fit_tfr_base |>
-  augment() |>
-  features(.innov, ljung_box, lag = 12, dof = 2)
+# Corrected Ljung-Box tests with proper dof (= number of estimated AR + MA params)
+# Helper function for per-model Ljung-Box with correct dof
+run_lb <- function(aug_df, model_name, dof_val, lag_val = NULL) {
+  lag_val <- if (is.null(lag_val)) max(dof_val + 1, 12) else lag_val
+  resid <- aug_df |> filter(.model == model_name) |> pull(.innov) |> na.omit()
+  bt <- Box.test(resid, lag = lag_val, type = "Ljung-Box", fitdf = dof_val)
+  tibble(.model = model_name, dof = dof_val, lag = lag_val,
+         lb_stat = bt$statistic, lb_pvalue = bt$p.value)
+}
 
-fit_tlb_base |>
-  augment() |>
-  features(.innov, ljung_box, lag = 12, dof = 2)
+tfr_base_aug <- fit_tfr_base |> augment()
+# tfr_auto_log = ARIMA(0,2,1) -> dof=1; 011->dof=1; 111->dof=2; 211->dof=3; 112->dof=3
+bind_rows(
+  run_lb(tfr_base_aug, "tfr_auto_log", 1),
+  run_lb(tfr_base_aug, "tfr_011_log",  1),
+  run_lb(tfr_base_aug, "tfr_111_log",  2),
+  run_lb(tfr_base_aug, "tfr_211_log",  3),
+  run_lb(tfr_base_aug, "tfr_112_log",  3)
+) |> arrange(desc(lb_pvalue))
+
+tlb_base_aug <- fit_tlb_base |> augment()
+# tlb_auto_log = ARIMA(0,1,0) -> dof=0; 011->dof=1; 111->dof=2; 211->dof=3; 112->dof=3
+bind_rows(
+  run_lb(tlb_base_aug, "tlb_auto_log", 0),
+  run_lb(tlb_base_aug, "tlb_011_log",  1),
+  run_lb(tlb_base_aug, "tlb_111_log",  2),
+  run_lb(tlb_base_aug, "tlb_211_log",  3),
+  run_lb(tlb_base_aug, "tlb_112_log",  3)
+) |> arrange(desc(lb_pvalue))
 fc_tfr_base <- fit_tfr_base |>
   forecast(h = 12)
 
@@ -323,16 +345,32 @@ fit_tlb_high |>
   select(tlb_sar_111_100_log) |>
   gg_tsresiduals()
 
-fit_tfr_high |>
-  augment() |>
-  features(.innov, ljung_box, lag = 24, dof = 0) |>
-  arrange(lb_pvalue)
+tfr_high_aug <- fit_tfr_high |> augment()
+# ar11->dof=11; ar12->dof=12; ar13->dof=13; ar13ma1->dof=14
+# sar_011_100 & sar_011_001->dof=2; sar_111_100 & sar_111_001->dof=3
+bind_rows(
+  run_lb(tfr_high_aug, "tfr_ar11_log",          11),
+  run_lb(tfr_high_aug, "tfr_ar12_log",           12),
+  run_lb(tfr_high_aug, "tfr_ar13_log",           13),
+  run_lb(tfr_high_aug, "tfr_ar13ma1_log",        14),
+  run_lb(tfr_high_aug, "tfr_sar_011_100_log",     2),
+  run_lb(tfr_high_aug, "tfr_sar_011_001_log",     2),
+  run_lb(tfr_high_aug, "tfr_sar_111_100_log",     3),
+  run_lb(tfr_high_aug, "tfr_sar_111_001_log",     3)
+) |> arrange(desc(lb_pvalue))
 
-
-fit_tlb_high |>
-  augment() |>
-  features(.innov, ljung_box, lag = 24, dof = 0) |>
-  arrange(lb_pvalue)
+tlb_high_aug <- fit_tlb_high |> augment()
+bind_rows(
+  run_lb(tlb_high_aug, "tlb_ar11_log",          11),
+  run_lb(tlb_high_aug, "tlb_ar12_log",           12),
+  run_lb(tlb_high_aug, "tlb_ar13_log",           13),
+  run_lb(tlb_high_aug, "tlb_ar12ma1_log",        13),
+  run_lb(tlb_high_aug, "tlb_ar13ma1_log",        14),
+  run_lb(tlb_high_aug, "tlb_sar_011_100_log",     2),
+  run_lb(tlb_high_aug, "tlb_sar_011_001_log",     2),
+  run_lb(tlb_high_aug, "tlb_sar_111_100_log",     3),
+  run_lb(tlb_high_aug, "tlb_sar_111_001_log",     3)
+) |> arrange(desc(lb_pvalue))
 
 fc_tfr_high <- fit_tfr_high |>
   forecast(h = 12)
