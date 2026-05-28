@@ -35,6 +35,12 @@ BFR <- BFR |>
     values_from = Value   ) |>   
   as_tsibble(index = Year)
 
+BFR <- BFR |>
+  mutate(
+    d_log_TFR = difference(log(TFR), differences = 1),
+    d_log_TLB = difference(log(TLB), differences = 1)
+  )
+
 train <- BFR |> filter(Year <= 2012)
 test  <- BFR |> filter(Year >= 2013)
 ```
@@ -50,11 +56,15 @@ observed period from 2013–2024?**
 ```{r tfr-plot, fig.cap="Total Fertility Rate in Singapore, 1960–2024", results='markup'}
 BFR |>
   autoplot(TFR)
+BFR |> 
+  autoplot(d_log_TFR)
 
 ```
 ```{r}
 BFR |>
   autoplot(TLB)
+BFR |> 
+  autoplot(d_log_TLB)
 ```
 ```{r}
 
