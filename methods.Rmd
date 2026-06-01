@@ -1,5 +1,5 @@
 ---
-title: "Statistical Report"
+title: "Methods"
 author: "Otto"
 date: "`r Sys.Date()`"
 output: pdf_document
@@ -12,11 +12,6 @@ editor_options:
 knitr::opts_chunk$set(echo = FALSE)
 pacman::p_load(fpp3, skimr, tsibble, dplyr, readr) 
 BFR <- read_csv("BirthsAndFertilityRatesAnnual.csv")
-```
-
-# Statistical Report on Fertility Data in Singapore
-
-```{r}
 BFR <- BFR |>   
   filter(DataSeries %in% c("Total Fertility Rate (TFR)", "Total Live-Births")) |> 
   mutate(DataSeries = 
@@ -42,22 +37,6 @@ BFR <- BFR |>
   )
 ```
 
-## Abstract
-
-## Introduction
-
-**Can time series models trained on data from 1960–2012 accurately
-forecast Singapore's continuing fertility decline over 2013–2024?**
-
-TO INLCUDE WHEN INTRODUCTION IS DONE
-
-Inlude nessacary abbreviations when writing it up
-
-4. Justify SARIMA period 12 in Introduction (page 3)
-The periodogram doesn't obviously point to period 12, so you need literature to justify it. Add a paragraph in the Introduction discussing the Chinese zodiac Dragon year effect on Singapore births. This is what makes the SARIMA(p,d,q)(P,D,Q)[12] models substantively motivated rather than just data-driven.
-
-
-
 ## Methods
 
 The modelling workflow was designed to answer our forecasting needs. The
@@ -70,7 +49,9 @@ train <- BFR |> filter(Year <= 2012)
 test  <- BFR |> filter(Year >= 2013)
 ```
 
-Time plots and the Kwiatkowski-Phillips-Schmidt-Shin (KPSS) tests of the two series were used to check for trends, changes in variance and overall appropriateness for ARIMA modelling. Both series
+Time plots, Kwiatkowski-Phillips-Schmidt-Shin (KPSS) tests and ACF/PACF
+plots of the two series were used to check for trends, changes in
+variance and overall appropriateness for ARIMA modelling. Both series
 showed evidence of non-stationarity and since ARIMA models require the
 time series to be stationary, transformation of the series was necessary
 prior to modelling.
@@ -89,10 +70,13 @@ BFR |>
 
 Both series were then transformed using either just the log or the log
 with first or second differencing. These transformed series were then
-tested by the KPSS test, residual plots of the series to ensure that the transformation improves the stationarity.
+tested by the KPSS test, residual plots and looking at the ACF and PACF
+plots of the series to ensure that the transformation improves the
+stationarity.
 
 The KPSS test is used for testing whether a given time series is
-stationary. The time series' are logged to scale
+stationary (Should I go into more detail or is this the level or should
+it be in the appendix if it is?). The time series' are logged to scale
 the variance proportionally if there is a trend so to keep relative
 magnitude of changes in the data in the mind of the model. Differencing
 is used for the removal of the trends shown inside the data.
@@ -130,28 +114,3 @@ made us consider models which would account for this correlation. Models
 were only considered viable only if their residuals were approximately
 white noise. Among viable models, the final model selection was based on
 AIC and forecast accuracy over the 2013-2024 period.
-
-  - So informed decision to try ARMIA (12,x, y) and SARIMA models
-    potentially
-
-| Series | Models |
-|------------------------------------|------------------------------------|
-| TFR | SARIMA(0,1,1)(1,0,0)[12], SARIMA(1,1,1)(1,0,0)[12], SARIMA(1,2,1)(1,0,0)[12] |
-| TLB | SARIMA(0,1,1)(1,0,0)[12], SARIMA(1,1,1)(1,0,0)[12], SARIMA(0,2,1)(1,0,0)[12] |
-
-## Results
-
-Your professor expects the Results section to show:
-
-ACF/PACF plots of the detrended and deseasonalised series
-How the first viable model was identified from those plots
-How you varied parameters to get additional viable models
-How each viable model fits the testing data
-
-## Discussion
-
-## Conclusion
-
-## References
-
-## Appendices if applicable.
