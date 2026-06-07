@@ -10,7 +10,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
-pacman::p_load(fpp3, skimr, tsibble, dplyr, readr, patchwork) 
+pacman::p_load(fpp3, skimr, tsibble, dplyr, readr, patchwork, stringr) 
 BFR <- read_csv("BirthsAndFertilityRatesAnnual.csv")
 ```
 
@@ -250,22 +250,6 @@ ACF/PACF plots these models failed to produce white noise residuals. We
 next decided to fit some higher-order ARIMA models with seasonal terms as well as some SARIMA models with lag 12.
 You can see the tested models below with their resultant residuals:
 
-
-| Model                      | of Notes    |
-|:---------------------------|:---------|
-| ARIMA(11,1,0)              |          |
-| ARIMA(12,1,0)              |          |
-| ARIMA(13,1,0)              |          |
-| ARIMA(13,1,1)              |          |
-| SARIMA(0,1,1)(1,0,0)[12]   |          |
-| SARIMA(0,1,1)(0,0,1)[12]   |          |
-| SARIMA(1,1,1)(1,0,0)[12]   |          |
-| SARIMA(1,1,1)(0,0,1)[12]   |          |
-| ARIMA(0,2,1)               |          |
-| ARIMA(1,2,1)               |          |
-| SARIMA(0,2,1)(1,0,0)[12]   |          |
-| SARIMA(1,2,1)(1,0,0)[12]   |          |
-
 ```{r}
 fit_tfr <- train |>
   model(
@@ -396,6 +380,8 @@ tfr_ljung <- bind_rows(
 )
 ```
 
+
+
 ```{r}
 tlb_ljung <- bind_rows(
   fit_tlb |> select(tlb_ar11_log) |> augment() |>
@@ -434,36 +420,152 @@ tlb_ljung <- bind_rows(
   fit_tlb |> select(tlb_sar_121_100_log) |> augment() |>
     features(.innov, ljung_box, lag = 24, dof = 3)
 )
-```
-```{r}
 tfr_ljung <- tfr_ljung |>
   mutate(
     viable = if_else(lb_pvalue > 0.05,
-                     "Viable: residual autocorrelation not detected",
-                     "Not viable: residual autocorrelation detected")
+                     "Yes",
+                     "No")
   )
-
 tlb_ljung <- tlb_ljung |>
   mutate(
     viable = if_else(lb_pvalue > 0.05,
-                     "Viable: residual autocorrelation not detected",
-                     "Not viable: residual autocorrelation detected")
+                     "Yes",
+                     "No")
   )
+```
+
+
+```{r}
+combined_ljung <- full_join(
+  tfr_ljung |>
+    select(.model, lb_pvalue, viable) |>
+    mutate(
+      model_type = case_when(
+        str_detect(.model, "ar11") ~ "ARIMA(11,1,0)",
+        str_detect(.model, "ar12_log") ~ "ARIMA(12,1,0)",
+        str_detect(.model, "ar13_log") ~ "ARIMA(13,1,0)",
+        str_detect(.model, "ar13ma1") ~ "ARIMA(13,1,1)",
+        str_detect(.model, "sar_011_100") ~ "SARIMA(0,1,1)(1,0,0)[12]",
+        str_detect(.model, "sar_011_001") ~ "SARIMA(0,1,1)(0,0,1)[12]",
+        str_detect(.model, "sar_111_100") ~ "SARIMA(1,1,1)(1,0,0)[12]",
+        str_detect(.model, "sar_111_001") ~ "SARIMA(1,1,1)(0,0,1)[12]",
+        str_detect(.model, "021_log") ~ "ARIMA(0,2,1)",
+        str_detect(.model, "121_log") ~ "ARIMA(1,2,1)",
+        str_detect(.model, "sar_021_100") ~ "SARIMA(0,2,1)(1,0,0)[12]",
+        str_detect(.model, "sar_121_100") ~ "SARIMA(1,2,1)(1,0,0)[12]",
+        TRUE ~ .model
+      )
+    ) |>
+    select(model_type, tfr_lb_pvalue = lb_pvalue, tfr_viable = viable),
+
+  tlb_ljung |>
+    select(.model, lb_pvalue, viable) |>
+    mutate(
+      model_type = case_when(
+        str_detect(.model, "ar11") ~ "ARIMA(11,1,0)",
+        str_detect(.model, "ar12_log") ~ "ARIMA(12,1,0)",
+        str_detect(.model, "ar13_log") ~ "ARIMA(13,1,0)",
+        str_detect(.model, "ar13ma1") ~ "ARIMA(13,1,1)",
+        str_detect(.model, "sar_011_100") ~ "SARIMA(0,1,1)(1,0,0)[12]",
+        str_detect(.model, "sar_011_001") ~ "SARIMA(0,1,1)(0,0,1)[12]",
+        str_detect(.model, "sar_111_100") ~ "SARIMA(1,1,1)(1,0,0)[12]",
+        str_detect(.model, "sar_111_001") ~ "SARIMA(1,1,1)(0,0,1)[12]",
+        str_detect(.model, "021_log") ~ "ARIMA(0,2,1)",
+        str_detect(.model, "121_log") ~ "ARIMA(1,2,1)",
+        str_detect(.model, "sar_021_100") ~ "SARIMA(0,2,1)(1,0,0)[12]",
+        str_detect(.model, "sar_121_100") ~ "SARIMA(1,2,1)(1,0,0)[12]",
+        TRUE ~ .model
+      )
+    ) |>
+    select(model_type, tlb_lb_pvalue = lb_pvalue, tlb_viable = viable),
+
+  by = "model_type"
+) |>
+  arrange(model_type)
 
 knitr::kable(
-  tfr_ljung,
+  combined_ljung,
   digits = 3,
-  caption = "Ljung-Box residual tests for TFR candidate models"
-)
-
-knitr::kable(
-  tlb_ljung,
-  digits = 3,
-  caption = "Ljung-Box residual tests for TLB candidate models"
+  caption = "Ljung–Box residual tests for TFR and TLB candidate models"
 )
 
 ```
-We then tested each of these models
+
+After testing each models residual autocorrelation we have a list of models which pass the test and can now evaluate their testing set errors to evaluate the model with the best prediction of both TFR and TLB in Singapore.  
+
+```{r}
+viable_tfr <- tfr_ljung |>
+  filter(viable == "Yes") |>
+  pull(.model)
+
+viable_tlb <- tlb_ljung |>
+  filter(viable == "Yes") |> 
+  pull(.model)
+
+fit_tfr_viable <- fit_tfr |>
+  select(all_of(viable_tfr))
+
+fit_tlb_viable <- fit_tlb |>
+  select(all_of(viable_tlb))
+
+tfr_aic <- fit_tfr_viable |>
+  glance() |>
+  select(.model, AIC, AICc, BIC) |>
+  arrange(AICc)
+
+tlb_aic <- fit_tlb_viable |>
+  glance() |>
+  select(.model, AIC, AICc, BIC) |>
+  arrange(AICc)
+
+knitr::kable(tfr_aic, digits = 3,
+             caption = "AIC and AICc values for TFR candidate models")
+
+knitr::kable(tlb_aic, digits = 3,
+             caption = "AIC and AICc values for TLB candidate models")
+```
+```{r}
+fc_tfr <- fit_tfr_viable |>
+  forecast(h = 12)
+
+fc_tlb <- fit_tlb_viable |>
+  forecast(h = 12)
+
+tfr_accuracy_viable <- fc_tfr |>
+  accuracy(test) |>
+  select(.model, RMSE, MAE, MAPE) |>
+  arrange(RMSE)
+
+tlb_accuracy_viable <- fc_tlb |>
+  accuracy(test) |>
+  select(.model, RMSE, MAE, MAPE) |>
+  arrange(RMSE)
+
+knitr::kable(
+  tfr_accuracy_viable,
+  digits = 3,
+  caption = "Forecast accuracy for viable TFR models over 2013–2024"
+)
+
+knitr::kable(
+  tlb_accuracy_viable,
+  digits = 3,
+  caption = "Forecast accuracy for viable TLB models over 2013–2024"
+)
+```
+```{r}
+fc_tfr |>
+  autoplot(BFR |> filter(Year >= 2000), level = 80) +
+  labs(title = "TFR: Viable SARIMA forecasts vs observed (2000–2024)",
+       y = "Total Fertility Rate", x = "Year")
+```
+
+```{r}
+fc_tlb |>
+  autoplot(BFR |> filter(Year >= 2000), level = 80) +
+  labs(title = "TLB: Viable model forecasts vs observed (2000–2024)",
+       y = "Total Live Births", x = "Year")
+```
 
 Your professor expects the Results section to show:
 
