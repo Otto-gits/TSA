@@ -10,7 +10,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
-pacman::p_load(fpp3, skimr, tsibble, dplyr, readr) 
+pacman::p_load(fpp3, skimr, tsibble, dplyr, readr, patchwork) 
 BFR <- read_csv("BirthsAndFertilityRatesAnnual.csv")
 ```
 
@@ -53,10 +53,12 @@ TO INLCUDE WHEN INTRODUCTION IS DONE
 
 Inlude nessacary abbreviations when writing it up
 
-4. Justify SARIMA period 12 in Introduction (page 3)
-The periodogram doesn't obviously point to period 12, so you need literature to justify it. Add a paragraph in the Introduction discussing the Chinese zodiac Dragon year effect on Singapore births. This is what makes the SARIMA(p,d,q)(P,D,Q)[12] models substantively motivated rather than just data-driven.
-
-
+4.  Justify SARIMA period 12 in Introduction (page 3) The periodogram
+    doesn't obviously point to period 12, so you need literature to
+    justify it. Add a paragraph in the Introduction discussing the
+    Chinese zodiac Dragon year effect on Singapore births. This is what
+    makes the SARIMA(p,d,q)(P,D,Q)[12] models substantively motivated
+    rather than just data-driven.
 
 ## Methods
 
@@ -70,10 +72,12 @@ train <- BFR |> filter(Year <= 2012)
 test  <- BFR |> filter(Year >= 2013)
 ```
 
-Time plots and the Kwiatkowski-Phillips-Schmidt-Shin (KPSS) tests of the two series were used to check for trends, changes in variance and the transformations required before modelling. Both series
-showed evidence of non-stationarity and since ARIMA models require the
-time series to be stationary, transformation of the series was necessary
-prior to modelling.
+Time plots and the Kwiatkowski-Phillips-Schmidt-Shin (KPSS) tests of the
+two series were used to check for trends, changes in variance and the
+transformations required before modelling. Both series showed evidence
+of non-stationarity and since ARIMA models require the time series to be
+stationary, transformation of the series was necessary prior to
+modelling.
 
 ```{r tfr-plot, fig.cap="Annual Total Fertility Rate in Singapore"}
 BFR |>
@@ -86,13 +90,17 @@ BFR |>
   autoplot(TLB)+
   labs(y= "Total Live Births", x = "Year")
 ```
-The log transformation was used to stabilise variance and make the model proportional rather than absolute changes. Differencing was used to remove the trends shown inside the data. 
+
+The log transformation was used to stabilise variance and make the model
+proportional rather than absolute changes. Differencing was used to
+remove the trends shown inside the data.
 
 Both series were then transformed using either just the log or the log
 with first or second differencing. These transformed series were then
-tested by the KPSS test to ensure an improvement of the stationarity of the series. 
+tested by the KPSS test to ensure an improvement of the stationarity of
+the series.
 
-```{r eval=FALSE, include=FALSE}
+```{r kpss, eval=FALSE, include=FALSE}
 # KPSS on training data for the two transformations used in your models
 train |> features(difference(log(TFR)), unitroot_kpss)
 train |> features(difference(log(TLB)), unitroot_kpss)
@@ -101,31 +109,46 @@ train |> features(difference(log(TLB), differences = 2), unitroot_kpss)
 ```
 
 Two transformations showed potential as being stationary
-(first-differenced and logged, and second-differenced logged). With the KPSS test
-a small p-value shows evidence against stationarity.  For TFR, the KPSS test gave
-that $p= 0.0406$ for the first-differnced logged series and $p=0.1$ for the
-second-differenced logged series. For the logged TLB with both first and second
-differencing gave the same p-values of $p=0.1$. So for TLB stationarity was not
-rejected for either transformation. 
-
+(first-differenced and logged, and second-differenced logged). With the
+KPSS test a small p-value shows evidence against stationarity. For TFR,
+the KPSS test gave that $p= 0.0406$ for the first-differnced logged
+series and $p=0.1$ for the second-differenced logged series. For the
+logged TLB with both first and second differencing gave the same
+p-values of $p=0.1$. So for TLB stationarity was not rejected for either
+transformation.
 
 Despite the first difference of the TFR data having a KPSS test result
 below the significance threshold, we would prefer there to be less
 differencing as we do not want to over-difference the data and introduce
-noise in a relatively short data-set. We kept the second-differenced models as comparison as well so we could see another set of models in the results.
+noise in a relatively short data-set. We kept the second-differenced
+models as comparison as well so we could see another set of models in
+the results.
 
-Because the transformed series and baseline residual diagnostics showed dependence around lags 11–13, higher-lag ARIMA models were also considered. These models were included to capture longer-lag autoregressive dependence that was not represented by the low-order baseline models.
+Because the transformed series and baseline residual diagnostics showed
+dependence around lags 11–13, higher-lag ARIMA models were also
+considered. These models were included to capture longer-lag
+autoregressive dependence that was not represented by the low-order
+baseline models.
 
-SARIMA-style models with period 12 were also considered. Although the data are annual, the period-12 structure was motivated by both the lag-12 dependence observed in the transformed series and the literature discussed in the Introduction on Chinese zodiac-related birth timing effects in Singapore. These models were included to assess whether a 12-year pattern could be represented more simply than by unrestricted high-order ARIMA models. For the SARIMA candidates, the ACF and PACF plots of the transformed series were inspected to guide the initial period-12 model specification.
+SARIMA-style models with period 12 were also considered. Although the
+data are annual, the period-12 structure was motivated by both the
+lag-12 dependence observed in the transformed series and the literature
+discussed in the Introduction on Chinese zodiac-related birth timing
+effects in Singapore. These models were included to assess whether a
+12-year pattern could be represented more simply than by unrestricted
+high-order ARIMA models. For the SARIMA candidates, the ACF and PACF
+plots of the transformed series were inspected to guide the initial
+period-12 model specification.
 
-Models were only considered viable if their residuals were approximately white
-noise. This again was assessed with ACF and PACF, portmanteau tests and residual
-plots. Among viable models, the final model selection was based on AIC and
-forecast accuracy over the 2013-2024 period. Forecast accuracy was assessed with
-RMSE and MAE, with formulas provided in the appendix. 
+Models were only considered viable if their residuals were approximately
+white noise. This again was assessed with ACF and PACF, portmanteau
+tests and residual plots. Among viable models, the final model selection
+was based on AIC and forecast accuracy over the 2013-2024 period.
+Forecast accuracy was assessed with RMSE and MAE, with formulas provided
+in the appendix.
 
-  - So informed decision to try ARMIA (12,x, y) and SARIMA models
-    potentially
+- So informed decision to try ARMIA (12,x, y) and SARIMA models
+  potentially
 
 | Series | Models |
 |------------------------------------|------------------------------------|
@@ -134,12 +157,320 @@ RMSE and MAE, with formulas provided in the appendix.
 
 ## Results
 
+The ACF and PACF plots of the log-first-differenced series are shown in
+Figure 3. For both TFR and TLB the plots show a remaining dependence on
+lags 11-13, particularly at lag 12. This suggests that low order ARIMA
+models may not fully account for the higher order dependencies shown by
+Figure 3.
+
+```{r acf-pacf-log-first-diff, fig.cap="ACF and PACF plots of the log-first-differenced TFR and TLB series"}
+acf_tfrD <- train |>
+  ACF(difference(log(TFR))) |>
+  autoplot() +
+  labs(title = "ACF of log-differenced TFR")
+
+pacf_tfrD <- train |>
+  PACF(difference(log(TFR))) |>
+  autoplot() +
+  labs(title = "PACF of log-differenced TFR")
+
+acf_tlbD <- train |>
+  ACF(difference(log(TLB))) |>
+  autoplot() +
+  labs(title = "ACF of log-differenced TLB")
+
+pacf_tlbD <- train |>
+  PACF(difference(log(TLB))) |>
+  autoplot() +
+  labs(title = "PACF of log-differenced TLB")
+
+(acf_tfrD | pacf_tfrD) /
+(acf_tlbD | pacf_tlbD)
+```
+
+```{r acf-pacf-log-second-diff, fig.cap="ACF and PACF plots of the log-second-differenced TFR and TLB series", include=FALSE}
+acf_tfrDD <- train |>
+  ACF(difference(log(TFR), differences = 2)) |>
+  autoplot() +
+  labs(title = "ACF of log-second-differenced TFR")
+
+pacf_tfrDD <- train |>
+  PACF(difference(log(TFR), differences = 2)) |>
+  autoplot() +
+  labs(title = "PACF of log-second-differenced TFR")
+
+acf_tlbDD <- train |>
+  ACF(difference(log(TLB), differences = 2)) |>
+  autoplot() +
+  labs(title = "ACF of log-second-differenced TLB")
+
+pacf_tlbDD <- train |>
+  PACF(difference(log(TLB), differences = 2)) |>
+  autoplot() +
+  labs(title = "PACF of log-second-differenced TLB")
+
+(acf_tfrDD | pacf_tfrDD) /
+(acf_tlbDD | pacf_tlbDD)
+```
+
+
+To assess the period-12 SARIMA candidates, the ACF and PACF of $(1-B)\log(X_{t})$ (Figure 3) and $(1-B^{12})(1-B)\log(X_{t})$ (Figure 4) were used to guide the structure of our models. For both series, Figure 3 showed PACF spikes at lag-12 this suggested a seasonal AR term could be useful, while the lower lag ACF structure supported testing simple MA terms. This informed our decision for our first SARIMA candidate model to be SARIMA(0,1,1)(1,0,0)[12]. Nearby candidates were also fitted by varying the non-seasonal AR and MA orders and by comparing seasonal AR and MA terms.
+
+In our seasonally differenced plot (Figure 4), lag-12 dependence remained even after the period 12 differencing. This indicated that differencing alone could not remove the period 12 dependence structure and supported the use of seasonal ARIMA models. 
+
+```{r acf-pacf-seasonal-diff, fig.cap="ACF and PACF plots of the log-first-differenced and period-12 differenced TFR and TLB series"}
+
+acf_tfrSD <- train |>
+  ACF(difference(difference(log(TFR)), lag = 12)) |>
+  autoplot() +
+  labs(title = "ACF of period-12 differenced log TFR")
+
+pacf_tfrSD <- train |>
+  PACF(difference(difference(log(TFR)), lag = 12)) |>
+  autoplot() +
+  labs(title = "PACF of period-12 differenced log TFR")
+
+acf_tlbSD <- train |>
+  ACF(difference(difference(log(TLB)), lag = 12)) |>
+  autoplot() +
+  labs(title = "ACF of period-12 differenced log TLB")
+
+pacf_tlbSD <- train |>
+  PACF(difference(difference(log(TLB)), lag = 12)) |>
+  autoplot() +
+  labs(title = "PACF of period-12 differenced log TLB")
+
+(acf_tfrSD | pacf_tfrSD) /
+(acf_tlbSD | pacf_tlbSD)
+```
+
+Firstly, we fitted some low-order ARIMA models without seasonal terms,
+however, as expected based on the lag-12 dependence identified with the
+ACF/PACF plots these models failed to produce white noise residuals. We
+next decided to fit some higher-order ARIMA models with seasonal terms as well as some SARIMA models with lag 12.
+You can see the tested models below with their resultant residuals:
+
+
+| Model                      | of Notes    |
+|:---------------------------|:---------|
+| ARIMA(11,1,0)              |          |
+| ARIMA(12,1,0)              |          |
+| ARIMA(13,1,0)              |          |
+| ARIMA(13,1,1)              |          |
+| SARIMA(0,1,1)(1,0,0)[12]   |          |
+| SARIMA(0,1,1)(0,0,1)[12]   |          |
+| SARIMA(1,1,1)(1,0,0)[12]   |          |
+| SARIMA(1,1,1)(0,0,1)[12]   |          |
+| ARIMA(0,2,1)               |          |
+| ARIMA(1,2,1)               |          |
+| SARIMA(0,2,1)(1,0,0)[12]   |          |
+| SARIMA(1,2,1)(1,0,0)[12]   |          |
+
+```{r}
+fit_tfr <- train |>
+  model(
+    # Higher-lag ARIMA models
+    tfr_ar11_log = ARIMA(log(TFR) ~ 0 + pdq(11, 1, 0),
+                         order_constraint = TRUE),
+
+    tfr_ar12_log = ARIMA(log(TFR) ~ 0 + pdq(12, 1, 0),
+                         order_constraint = TRUE),
+
+    tfr_ar13_log = ARIMA(log(TFR) ~ 0 + pdq(13, 1, 0),
+                         order_constraint = TRUE),
+
+    tfr_ar13ma1_log = ARIMA(log(TFR) ~ 0 + pdq(13, 1, 1),
+                            order_constraint = TRUE),
+
+    # SARIMA-style period-12 models
+    tfr_sar_011_100_log = ARIMA(log(TFR) ~ 0 + pdq(0, 1, 1) + 
+                                  PDQ(1, 0, 0, period = 12),
+                                order_constraint = TRUE),
+
+    tfr_sar_011_001_log = ARIMA(log(TFR) ~ 0 + pdq(0, 1, 1) + 
+                                  PDQ(0, 0, 1, period = 12),
+                                order_constraint = TRUE),
+
+    tfr_sar_111_100_log = ARIMA(log(TFR) ~ 0 + pdq(1, 1, 1) + 
+                                  PDQ(1, 0, 0, period = 12),
+                                order_constraint = TRUE),
+
+    tfr_sar_111_001_log = ARIMA(log(TFR) ~ 0 + pdq(1, 1, 1) + 
+                                  PDQ(0, 0, 1, period = 12),
+                                order_constraint = TRUE),
+
+    # d=2 models
+    tfr_021_log = ARIMA(log(TFR) ~ 0 + pdq(0, 2, 1)),
+    
+    tfr_121_log = ARIMA(log(TFR) ~ 0 + pdq(1, 2, 1)),
+    
+    tfr_sar_021_100_log = ARIMA(log(TFR) ~ 0 + pdq(0, 2, 1) + 
+                                  PDQ(1, 0, 0, period = 12)),
+
+    tfr_sar_121_100_log = ARIMA(log(TFR) ~ 0 + pdq(1, 2, 1) + 
+                                  PDQ(1, 0, 0, period = 12))
+  )
+fit_tlb <- train |>
+  model(
+    # Higher-lag ARIMA models
+    tlb_ar11_log = ARIMA(log(TLB) ~ 0 + pdq(11, 1, 0),
+                         order_constraint = TRUE),
+
+    tlb_ar12_log = ARIMA(log(TLB) ~ 0 + pdq(12, 1, 0),
+                         order_constraint = TRUE),
+
+    tlb_ar13_log = ARIMA(log(TLB) ~ 0 + pdq(13, 1, 0),
+                         order_constraint = TRUE),
+
+    tlb_ar13ma1_log = ARIMA(log(TLB) ~ 0 + pdq(13, 1, 1),
+                            order_constraint = TRUE),
+
+    # SARIMA-style period-12 models
+    tlb_sar_011_100_log = ARIMA(log(TLB) ~ 0 + pdq(0, 1, 1) + 
+                                  PDQ(1, 0, 0, period = 12),
+                                order_constraint = TRUE),
+
+    tlb_sar_011_001_log = ARIMA(log(TLB) ~ 0 + pdq(0, 1, 1) + 
+                                  PDQ(0, 0, 1, period = 12),
+                                order_constraint = TRUE),
+
+    tlb_sar_111_100_log = ARIMA(log(TLB) ~ 0 + pdq(1, 1, 1) + 
+                                  PDQ(1, 0, 0, period = 12),
+                                order_constraint = TRUE),
+
+    tlb_sar_111_001_log = ARIMA(log(TLB) ~ 0 + pdq(1, 1, 1) + 
+                                  PDQ(0, 0, 1, period = 12),
+                                order_constraint = TRUE),
+
+    # d=2 models
+    
+    tlb_021_log = ARIMA(log(TLB) ~ 0 + pdq(0, 2, 1)),
+    
+    tlb_121_log = ARIMA(log(TLB) ~ 0 + pdq(1, 2, 1)),
+    
+    tlb_sar_021_100_log = ARIMA(log(TLB) ~ 0 + pdq(0, 2, 1) + 
+                                  PDQ(1, 0, 0, period = 12)),
+
+    tlb_sar_121_100_log = ARIMA(log(TLB) ~ 0 + pdq(1, 2, 1) + 
+                                  PDQ(1, 0, 0, period = 12))
+  )
+```
+
+```{r}
+tfr_ljung <- bind_rows(
+  fit_tfr |> select(tfr_ar11_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 11),
+
+  fit_tfr |> select(tfr_ar12_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 12),
+
+  fit_tfr |> select(tfr_ar13_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 13),
+
+  fit_tfr |> select(tfr_ar13ma1_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 14),
+
+  fit_tfr |> select(tfr_sar_011_100_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 2),
+
+  fit_tfr |> select(tfr_sar_011_001_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 2),
+
+  fit_tfr |> select(tfr_sar_111_100_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 3),
+
+  fit_tfr |> select(tfr_sar_111_001_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 3),
+
+  fit_tfr |> select(tfr_021_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 1),
+
+  fit_tfr |> select(tfr_121_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 2),
+
+  fit_tfr |> select(tfr_sar_021_100_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 2),
+
+  fit_tfr |> select(tfr_sar_121_100_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 3)
+)
+```
+
+```{r}
+tlb_ljung <- bind_rows(
+  fit_tlb |> select(tlb_ar11_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 11),
+
+  fit_tlb |> select(tlb_ar12_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 12),
+
+  fit_tlb |> select(tlb_ar13_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 13),
+
+  fit_tlb |> select(tlb_ar13ma1_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 14),
+
+  fit_tlb |> select(tlb_sar_011_100_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 2),
+
+  fit_tlb |> select(tlb_sar_011_001_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 2),
+
+  fit_tlb |> select(tlb_sar_111_100_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 3),
+
+  fit_tlb |> select(tlb_sar_111_001_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 3),
+
+  fit_tlb |> select(tlb_021_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 1),
+
+  fit_tlb |> select(tlb_121_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 2),
+
+  fit_tlb |> select(tlb_sar_021_100_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 2),
+
+  fit_tlb |> select(tlb_sar_121_100_log) |> augment() |>
+    features(.innov, ljung_box, lag = 24, dof = 3)
+)
+```
+```{r}
+tfr_ljung <- tfr_ljung |>
+  mutate(
+    viable = if_else(lb_pvalue > 0.05,
+                     "Viable: residual autocorrelation not detected",
+                     "Not viable: residual autocorrelation detected")
+  )
+
+tlb_ljung <- tlb_ljung |>
+  mutate(
+    viable = if_else(lb_pvalue > 0.05,
+                     "Viable: residual autocorrelation not detected",
+                     "Not viable: residual autocorrelation detected")
+  )
+
+knitr::kable(
+  tfr_ljung,
+  digits = 3,
+  caption = "Ljung-Box residual tests for TFR candidate models"
+)
+
+knitr::kable(
+  tlb_ljung,
+  digits = 3,
+  caption = "Ljung-Box residual tests for TLB candidate models"
+)
+
+```
+We then tested each of these models
+
 Your professor expects the Results section to show:
 
-ACF/PACF plots of the detrended and deseasonalised series
-How the first viable model was identified from those plots
-How you varied parameters to get additional viable models
-How each viable model fits the testing data
+ACF/PACF plots of the detrended and deseasonalised series How the first
+viable model was identified from those plots How you varied parameters
+to get additional viable models How each viable model fits the testing
+data
 
 ## Discussion
 
