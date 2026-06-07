@@ -70,7 +70,7 @@ train <- BFR |> filter(Year <= 2012)
 test  <- BFR |> filter(Year >= 2013)
 ```
 
-Time plots and the Kwiatkowski-Phillips-Schmidt-Shin (KPSS) tests of the two series were used to check for trends, changes in variance and overall appropriateness for ARIMA modelling. Both series
+Time plots and the Kwiatkowski-Phillips-Schmidt-Shin (KPSS) tests of the two series were used to check for trends, changes in variance and the transformations required before modelling. Both series
 showed evidence of non-stationarity and since ARIMA models require the
 time series to be stationary, transformation of the series was necessary
 prior to modelling.
@@ -86,16 +86,11 @@ BFR |>
   autoplot(TLB)+
   labs(y= "Total Live Births", x = "Year")
 ```
+The log transformation was used to stabilise variance and make the model proportional rather than absolute changes. Differencing was used to remove the trends shown inside the data. 
 
 Both series were then transformed using either just the log or the log
 with first or second differencing. These transformed series were then
-tested by the KPSS test, residual plots of the series to ensure that the transformation improves the stationarity.
-
-The KPSS test is used for testing whether a given time series is
-stationary. The time series' are logged to scale
-the variance proportionally if there is a trend so to keep relative
-magnitude of changes in the data in the mind of the model. Differencing
-is used for the removal of the trends shown inside the data.
+tested by the KPSS test to ensure an improvement of the stationarity of the series. 
 
 ```{r eval=FALSE, include=FALSE}
 # KPSS on training data for the two transformations used in your models
@@ -106,30 +101,28 @@ train |> features(difference(log(TLB), differences = 2), unitroot_kpss)
 ```
 
 Two transformations showed potential as being stationary
-(first-differenced and logged, and second differenced logged). The TFR
-data's KPSS test gave two different p-values for the two differencing
-settings $p_{log D=1} = 0.0406$ and $p_{log D=2} = 0.1$. The logged
-first difference setting's p-value was below the $0.05$, however, only
-slightly so it may still be considered if a potential model can produce
-white-noise residuals. For the TLB data both p-values were over the
-significance threshold with $p=0.1$ for both of them meaning that we can
-retain the null hypothesis, such that the TLB data is stationary with
-either of the transformations.
+(first-differenced and logged, and second-differenced logged). With the KPSS test
+a small p-value shows evidence against stationarity.  For TFR, the KPSS test gave
+that $p= 0.0406$ for the first-differnced logged series and $p=0.1$ for the
+second-differenced logged series. For the logged TLB with both first and second
+differencing gave the same p-values of $p=0.1$. So for TLB stationarity was not
+rejected for either transformation. 
+
 
 Despite the first difference of the TFR data having a KPSS test result
 below the significance threshold, we would prefer there to be less
 differencing as we do not want to over-difference the data and introduce
-noise in a relatively short data-set.
+noise in a relatively short data-set. We kept the second-differenced models as comparison as well so we could see another set of models in the results.
 
-The next step was to pick appropriate models for forecasting for the
-testing period. ACF and PACF plots were used to see if the time series
-had hidden correlation which had carried thorugh the transformations.
-Each time series transformation showed some dependence around lags 11-13
-with the most significant spike at lag 12. This potential seasonality
-made us consider models which would account for this correlation. Models
-were only considered viable only if their residuals were approximately
-white noise. Among viable models, the final model selection was based on
-AIC and forecast accuracy over the 2013-2024 period.
+Because the transformed series and baseline residual diagnostics showed dependence around lags 11–13, higher-lag ARIMA models were also considered. These models were included to capture longer-lag autoregressive dependence that was not represented by the low-order baseline models.
+
+SARIMA-style models with period 12 were also considered. Although the data are annual, the period-12 structure was motivated by both the lag-12 dependence observed in the transformed series and the literature discussed in the Introduction on Chinese zodiac-related birth timing effects in Singapore. These models were included to assess whether a 12-year pattern could be represented more simply than by unrestricted high-order ARIMA models. For the SARIMA candidates, the ACF and PACF plots of the transformed series were inspected to guide the initial period-12 model specification.
+
+Models were only considered viable if their residuals were approximately white
+noise. This again was assessed with ACF and PACF, portmanteau tests and residual
+plots. Among viable models, the final model selection was based on AIC and
+forecast accuracy over the 2013-2024 period. Forecast accuracy was assessed with
+RMSE and MAE, with formulas provided in the appendix. 
 
   - So informed decision to try ARMIA (12,x, y) and SARIMA models
     potentially
