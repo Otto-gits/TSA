@@ -248,7 +248,6 @@ Firstly, we fitted some low-order ARIMA models without seasonal terms,
 however, as expected based on the lag-12 dependence identified with the
 ACF/PACF plots these models failed to produce white noise residuals. We
 next decided to fit some higher-order ARIMA models with seasonal terms as well as some SARIMA models with lag 12.
-You can see the tested models below with their resultant residuals:
 
 ```{r}
 fit_tfr <- train |>
@@ -491,7 +490,7 @@ knitr::kable(
 
 ```
 
-After testing each models residual autocorrelation we have a list of models which pass the test and can now evaluate their testing set errors to evaluate the model with the best prediction of both TFR and TLB in Singapore.  
+Table 1 shows all of our different models and their residual autocorrelation tests pvalues. The results how that most high order ARIMA models with lags 11-13 failed the Ljung-Box Portmanteau test for both series with the only exception being the ARIMA(13,1,1) for TLB. This suggests that adding higher order AR terms was not enough to remove residual autocorrelation. The SARIMA models with a period 12 seasonal AR term performed much better with SARIMA(0,1,1)(1,0,0)[12], SARIMA(1,1,1)(1,0,0)[12] and SARIMA(1,2,1)(1,0,0)[12] being viable models in terms of their residuals for both series. 
 
 ```{r}
 viable_tfr <- tfr_ljung |>
@@ -519,11 +518,18 @@ tlb_aic <- fit_tlb_viable |>
   arrange(AICc)
 
 knitr::kable(tfr_aic, digits = 3,
-             caption = "AIC and AICc values for TFR candidate models")
-
-knitr::kable(tlb_aic, digits = 3,
-             caption = "AIC and AICc values for TLB candidate models")
+             caption = "AIC, AICc and BIC values for TFR candidate models")
 ```
+
+
+
+```{r}
+knitr::kable(tlb_aic, digits = 3,
+             caption = "AIC, AICc and BIC  values for TLB candidate models")
+```
+Tables 2 and 3 show the AIC, AICc and BIC values for the viable TFR and TLB candidate models. For both series, SARIMA(0,1,1)(1,0,0)[12] had the lowest information criteria values among the viable candidates. However, these criteria should be interpreted with caution as the candidate sets both include models with different orders of differencing and as such cannot be directly compared across $d=1 \text{ or } d=2$ models. With the research question in mind we are also preferring forecast accuracy for the 2013-2024 testing period as these in sample model fit results are not based on true out of sample forecast accuracy.
+
+
 ```{r}
 fc_tfr <- fit_tfr_viable |>
   forecast(h = 12)
@@ -547,35 +553,74 @@ knitr::kable(
   caption = "Forecast accuracy for viable TFR models over 2013–2024"
 )
 
+```
+
+Tables 4 shows the forecast accuracy for the viable TFR models over
+2013–2024 with 3 different forecasting metrics Root Mean Squared Error
+(RMSE), Mean Absolute Error (MAE) and Mean Absolute Percentage Error
+(MAPE). In the results we can see that SARIMA(1,2,1)(1,0,0)[12] has
+the lowest for each of the testing criteria therefore being the best
+prediction model for TFR. This leads us to select it as our preferred TFR forecasting model. 
+
+```{r}
 knitr::kable(
   tlb_accuracy_viable,
   digits = 3,
   caption = "Forecast accuracy for viable TLB models over 2013–2024"
 )
 ```
-```{r}
-fc_tfr |>
+
+Table 5 shows the forecast accuracy for the viable TLB models over
+2013–2024. Like in the TFR the trained model that performs best over
+the testing dataset is SARIMA(1,2,1)(1,0,0)[12]. It has the smallest 
+of our 3 criterion and as such will be our final TLB prediction model as well. 
+
+
+```{r fig.cap="Selected TFR model forecast vs observed (2000–2024)"}
+final_model_tfr <- fc_tfr |>
+  filter(.model == "tfr_sar_121_100_log")
+final_model_tlb <- fc_tlb |>
+  filter(.model == "tlb_sar_121_100_log")
+
+final_model_tfr |>
   autoplot(BFR |> filter(Year >= 2000), level = 80) +
-  labs(title = "TFR: Viable SARIMA forecasts vs observed (2000–2024)",
-       y = "Total Fertility Rate", x = "Year")
+  labs(y = "Total Fertility Rate", x = "Year")
+```
+
+Figure 5 shows a plot of the chosen model for the TFR series, SARIMA(1,2,1)(1,0,0)[12], vs the actual observed data from 2000 to 2024. The black line is the observed data and the blue line is our predicted value for each year. The shaded blue area is our 80& prediction interval and shows the model forecast along with any uncertainity from the model. This figure supports the forecast accuracy results from Table 4 As we can see that our model correctly forecasts the continual fall of the fertility rate during the testing period. However, the model does not perfectly match each year to year movement, and should be interpreted as being able to capture the general trend of the data downwards. 
+
+```{r fig.cap="Selected TLB model forecast vs observed (2000–2024)"}
+final_model_tlb |>
+  autoplot(BFR |> filter(Year >= 2000), level = 80) +
+  labs(y = "Total Live Births", x = "Year")
+```
+
+Figure 6 follows the same style as Figure 5 but is for the TLB series
+instead. We can see that the SARIMA model correctly predicts much of
+the trends in the TLB series. We can also use this plot to inform why
+it did not predict the TLB series perfectly and what factors can
+affect the TLB series outside of a traditional time series model analysis. 
+
+```{r}
+fit_tfr |>
+  select(tfr_sar_121_100_log) |>
+  gg_tsresiduals() +
+  labs(title = "Residual diagnostics for selected TFR model")
+
 ```
 
 ```{r}
-fc_tlb |>
-  autoplot(BFR |> filter(Year >= 2000), level = 80) +
-  labs(title = "TLB: Viable model forecasts vs observed (2000–2024)",
-       y = "Total Live Births", x = "Year")
+fit_tlb |>
+  select(tlb_sar_121_100_log) |>
+  gg_tsresiduals() +
+  labs(title = "Residual diagnostics for selected TLB model")
 ```
 
-Your professor expects the Results section to show:
-
-ACF/PACF plots of the detrended and deseasonalised series How the first
-viable model was identified from those plots How you varied parameters
-to get additional viable models How each viable model fits the testing
-data
 
 ## Discussion
 
+
+stop of immigration during covid effects TLB not TFR. 
 ## Conclusion
 
 ## References
