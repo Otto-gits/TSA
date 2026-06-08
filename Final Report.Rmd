@@ -1,20 +1,22 @@
 ---
-title: "Statistical Report"
-author: "Otto"
+title: "Statistical Report on Fertility Data in Singapore"
+subtitle: "[GitHub Repository](https://github.com/Otto-gits/TSA)"
+author: "Otto Hedger"
 date: "`r Sys.Date()`"
 output: pdf_document
+header-includes:
+  - \usepackage{float}
+  
 editor_options: 
   markdown: 
     wrap: 72
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, fig.width=10, fig.height=7, out.width="100%", fig.align="center", fig.pos="H")
 pacman::p_load(fpp3, skimr, tsibble, dplyr, readr, patchwork, stringr) 
 BFR <- read_csv("BirthsAndFertilityRatesAnnual.csv")
 ```
-
-# Statistical Report on Fertility Data in Singapore
 
 ```{r}
 BFR <- BFR |>   
@@ -37,27 +39,21 @@ BFR <- BFR |>
 ```
 
 ## Abstract
+Singapore has experienced a long-term decline in fertility, creating challenges for population planning, labour supply and demographic sustainability. This report examines whether time series models trained on annual Singapore fertility data from 1960–2012 can accurately forecast Total Fertility Rate (TFR) and Total Live Births (TLB) over the 2013–2024 testing period. The analysis applies log transformations and differencing to address non-stationarity, then compares ARIMA and period-12 SARIMA models using residual diagnostics, information criteria and out-of-sample forecast accuracy. Period-12 SARIMA models were included because of evidence of 12-year Chinese zodiac-related birth timing effects in Singapore. The preferred model for both TFR and TLB was SARIMA(1,2,1)(1,0,0)[12], which passed residual autocorrelation checks and produced the lowest testing-period forecast errors among the viable models. The model forecasted TFR more accurately than TLB, likely because TFR is a smoother fertility rate, while TLB is an absolute count affected by population size, immigration, marriage patterns and external shocks. Overall, the results show that SARIMA models can capture the broad downward fertility trend, but univariate time series models have limitations when demographic structure changes or unusual shocks occur.
+
 
 ## Introduction
 
-Singapore has long experienced a long-term decline in fertility of its population. This has many knock on affects to the economic and social structures of the country. Decreasing fertility can raise concerns about an ageing population, lack of labour supply and demographic sustainability. Therefore forecasting fertility is important for the governments future understanding of policy and planning. 
+Singapore has long experienced a long-term decline in fertility of its population. This has many knock-on effects to the economic and social structures of the country. Decreasing fertility can raise concerns about an ageing population, lack of labour supply and demographic sustainability. Therefore forecasting fertility is important for the government's future understanding of policy and planning. 
 
-This report focuses on two annual time series, Total Fertility Rate and Total Live Births. These series will be henceforth refered to as TFR and TLB respectively. TFR is the number of children an average woman would have in her lifetime if she experienced current age specific fertility rates. TLB is the total number of live births experienced in Singapore over the time period, in our case a year. TFR reflects overall fertility more directly, whereas TLB is affected by population size, marital rates, immigration and other demographic factors. 
+This report focuses on two annual time series, Total Fertility Rate and 
+Total Live Births. These numbers were sourced from Singapore Department of Statistics and Immigration and Checkpoints Authority. These series will be henceforth referred to as TFR and TLB respectively. TFR is the number of children an average woman would have in her lifetime if she experienced current age specific fertility rates. TLB is the total number of live births experienced in Singapore over the time period, in our case a year. TFR reflects overall fertility more directly, whereas TLB is affected by population size, marital rates, immigration and other demographic factors. 
 
 This leads us to our research question of **Can time series models trained on data from 1960–2012 accurately forecast Singapore's continuing fertility decline over 2013–2024?** 
 
-ARIMA and SARIMA models are used as they can 
+ARIMA and SARIMA models are used as they can model dependence in series' using past values, shocks and differencing of the series to handle non-stationarity. SARIMA models with period 12 will also be tested in this paper as the Chinese Zodiac follows a 12 year cycle and it is previously shown evidence of affecting the number of births in each given year. This is shown particularly in Dragon birth years (Agarwal et al., 2017). This phenomenon is attributed to cultural and social factors, such as increased fertility rates among couples who believe that having a child in a Dragon year brings good fortune. This effect provides a substantively motivated reason for using SARIMA models with a period of 12, as they can capture such cyclical patterns in the data. 
 
-TO INLCUDE WHEN INTRODUCTION IS DONE
-
-Inlude nessacary abbreviations when writing it up
-
-4.  Justify SARIMA period 12 in Introduction (page 3) The periodogram
-    doesn't obviously point to period 12, so you need literature to
-    justify it. Add a paragraph in the Introduction discussing the
-    Chinese zodiac Dragon year effect on Singapore births. This is what
-    makes the SARIMA(p,d,q)(P,D,Q)[12] models substantively motivated
-    rather than just data-driven.
+The analysis first examines the original TFR and TLB series, then applies log transformations and differencing to address non-stationarity. Viable models are then fit using the 1960-2012 training data and are tested the data from 2013-2024. The test results are in the form of residual diagnostics, information criteria and forecast accuracy.
 
 ## Methods
 
@@ -110,7 +106,7 @@ train |> features(difference(log(TLB), differences = 2), unitroot_kpss)
 Two transformations showed potential as being stationary
 (first-differenced and logged, and second-differenced logged). With the
 KPSS test a small p-value shows evidence against stationarity. For TFR,
-the KPSS test gave that $p= 0.0406$ for the first-differnced logged
+the KPSS test gave that $p= 0.0406$ for the first-differenced logged
 series and $p=0.1$ for the second-differenced logged series. For the
 logged TLB with both first and second differencing gave the same
 p-values of $p=0.1$. So for TLB stationarity was not rejected for either
@@ -154,7 +150,7 @@ lags 11-13, particularly at lag 12. This suggests that low order ARIMA
 models may not fully account for the higher order dependencies shown by
 Figure 3.
 
-```{r acf-pacf-log-first-diff, fig.cap="ACF and PACF plots of the log-first-differenced TFR and TLB series"}
+```{r acf-pacf-log-first-diff, fig.cap="ACF and PACF plots of the log-first-differenced TFR and TLB series", fig.width=10, fig.height=7, out.width="100%", fig.align="center", fig.pos="H"}
 acf_tfrD <- train |>
   ACF(difference(log(TFR))) |>
   autoplot() +
@@ -205,11 +201,11 @@ pacf_tlbDD <- train |>
 ```
 
 
-To assess the period-12 SARIMA candidates, the ACF and PACF of $(1-B)\log(X_{t})$ (Figure 3) and $(1-B^{12})(1-B)\log(X_{t})$ (Figure 4) were used to guide the structure of our models. For both series, Figure 3 showed PACF spikes at lag-12 this suggested a seasonal AR term could be useful, while the lower lag ACF structure supported testing simple MA terms. This informed our decision for our first SARIMA candidate model to be SARIMA(0,1,1)(1,0,0)[12]. Nearby candidates were also fitted by varying the non-seasonal AR and MA orders and by comparing seasonal AR and MA terms.
+To assess the period-12 SARIMA candidates, the ACF and PACF of $(1-B)\log(X_{t})$ (Figure 3) and $(1-B^{12})(1-B)\log(X_{t})$ (Figure 4) were used to guide the structure of our models. For both series, Figure 3 showed PACF spikes around lag 12, this suggested a seasonal AR term could be useful, while the lower lag ACF structure supported testing simple MA terms. This informed our decision for our first SARIMA candidate model to be SARIMA(0,1,1)(1,0,0)[12]. Nearby candidates were also fitted by varying the non-seasonal AR and MA orders and by comparing seasonal AR and MA terms.
 
 In our seasonally differenced plot (Figure 4), lag-12 dependence remained even after the period 12 differencing. This indicated that differencing alone could not remove the period 12 dependence structure and supported the use of seasonal ARIMA models. 
 
-```{r acf-pacf-seasonal-diff, fig.cap="ACF and PACF plots of the log-first-differenced and period-12 differenced TFR and TLB series"}
+```{r acf-pacf-seasonal-diff, fig.cap="ACF and PACF plots of the log-first-differenced and period-12 differenced TFR and TLB series", fig.width=10, fig.height=7, out.width="100%", fig.align="center", fig.pos="H"}
 
 acf_tfrSD <- train |>
   ACF(difference(difference(log(TFR)), lag = 12)) |>
@@ -481,8 +477,7 @@ knitr::kable(
 
 ```
 
-Table 1 shows all of our different models and their residual autocorrelation tests pvalues. The results how that most high order ARIMA models with lags 11-13 failed the Ljung-Box Portmanteau test for both series with the only exception being the ARIMA(13,1,1) for TLB. This suggests that adding higher order AR terms was not enough to remove residual autocorrelation. The SARIMA models with a period 12 seasonal AR term performed much better with SARIMA(0,1,1)(1,0,0)[12], SARIMA(1,1,1)(1,0,0)[12] and SARIMA(1,2,1)(1,0,0)[12] being viable models in terms of their residuals for both series. 
-
+Table 1 reports the Ljung–Box portmanteau test p-values for the candidate models. Most high-order ARIMA models with lags 11–13 failed the test for at least one series, with the only exception being ARIMA(13,1,1) for TLB. This suggests that adding unrestricted high-order AR terms was not sufficient to remove residual autocorrelation. The SARIMA models with a period-12 AR term performed better, with SARIMA(0,1,1)(1,0,0)[12], SARIMA(1,1,1)(1,0,0)[12] and SARIMA(1,2,1)(1,0,0)[12] being viable for both series.
 ```{r}
 viable_tfr <- tfr_ljung |>
   filter(viable == "Yes") |>
@@ -567,7 +562,7 @@ the testing dataset is SARIMA(1,2,1)(1,0,0)[12]. It has the smallest
 of our 3 criterion and as such will be our final TLB prediction model as well. 
 
 
-```{r fig.cap="Selected TFR model forecast vs observed (2000–2024)"}
+```{r fig.cap="Selected TFR model forecast vs observed (2000–2024)", fig.width=10, fig.height=7, out.width="100%", fig.align="center", fig.pos="H"}
 final_model_tfr <- fc_tfr |>
   filter(.model == "tfr_sar_121_100_log")
 final_model_tlb <- fc_tlb |>
@@ -578,9 +573,9 @@ final_model_tfr |>
   labs(y = "Total Fertility Rate", x = "Year")
 ```
 
-Figure 5 shows a plot of the chosen model for the TFR series, SARIMA(1,2,1)(1,0,0)[12], vs the actual observed data from 2000 to 2024. The black line is the observed data and the blue line is our predicted value for each year. The shaded blue area is our 80% prediction interval and shows the model forecast along with any uncertainity from the model. This figure supports the forecast accuracy results from Table 4 As we can see that our model correctly forecasts the continual fall of the fertility rate during the testing period. However, the model does not perfectly match each year to year movement, and should be interpreted as being able to capture the general trend of the data downwards. 
+Figure 5 shows a plot of the chosen model for the TFR series, SARIMA(1,2,1)(1,0,0)[12], vs the actual observed data from 2000 to 2024. The black line is the observed data and the blue line is our predicted value for each year. The shaded blue area is our 80% prediction interval and shows the model forecast along with any uncertainty from the model. This figure supports the forecast accuracy results from Table 4 As we can see that our model captures the continual fall of the fertility rate during the testing period. However, the model does not perfectly match each year to year movement, and should be interpreted as being able to capture the general trend of the data downwards. 
 
-```{r fig.cap="Selected TLB model forecast vs observed (2000–2024)"}
+```{r fig.cap="Selected TLB model forecast vs observed (2000–2024)", fig.width=10, fig.height=7, out.width="100%", fig.align="center", fig.pos="H"}
 final_model_tlb |>
   autoplot(BFR |> filter(Year >= 2000), level = 80) +
   labs(y = "Total Live Births", x = "Year")
@@ -597,32 +592,295 @@ The main finding of this analysis is that a SARIMA(1,2,1)(1,0,0)[12] is the pref
 
 The model forecasts TFR more accurately than TLB. TLB being all the total live births in Singapore means that it is affected by total population and overall fluctuations in other demographic factors than just the birth rate. TFR is a more representative of the proportion of the population and is a rate which means that it follows a smoother demographic trend rather than just population size. Therefore, a good model predicting overall fertility rates can still deviate when predicting total births as there are more variables.
 
-We see this the sharp decline can be attributed to the overall shock from COVID-19 and the affect on immigration into Singapore
+We see this the sharp decline from 2021-2023 can be attributed to the overall shock from COVID-19 and the knock-on effect on immigration into Singapore. Singapore's total population fell in 2020 and 2021 before rising again in 2022 (Singapore Department of Statistics, 2023). We must keep this in mind when analysing changes in TLB numbers. As spoken about earlier in the discussion the shock caused by COVID-19 may lead to a second-differenced model performing better as it is more flexible than single-differenced models. 
 
+The period-12 SARIMA component of the best performing models has captured the repeated 12-year dependence stemming from the Chinese Zodiac cycle. This is relevant in modelling as the previous evidence from about increased birth rates in specific Zodiac years, specifically high birth rates in Dragon years. We must keep in mind that our model is not directly modelling the cultural phenomena itself but is rather predicting changes in birth rates each year. The size of each Zodiac effect may vary across cycles and our simple seasonal model can only approximate this model. 
 
+The model also cannot account for the effect of pro-natalist policy interventions. This is relevant because Singapore has implemented multiple measures, including the Marriage and Parenthood Package, baby bonuses, tax measures, childcare subsidies and parental leave. Chen et al. (2018) argues that these policies may not fully target the groups most influential in determining TFR, particularly marriage and first-birth groups. This policy context is external to the univariate SARIMA models used in this report and future policies and other external factors will not be predicted by models like these. 
 
+In order to extend this analysis in birth rates of Singapore we could include multivariate forecasting models which could include other societal factors and may better predict changes in the overall birthrate. This would help separate the underlying fertility trend from temporary shocks and structural demographic changes.
 
-stop of immigration during covid effects TLB not TFR. 
 ## Conclusion
+This report found that SARIMA(1,2,1)(1,0,0)[12] was the preferred model for forecasting both Singapore TFR and TLB over the 2013–2024 testing period. The model had the best forecasting accuracy across all tested models and also produced white noise residuals. Overall, the results show that SARIMA models can capture the broad downward fertility trend, but univariate time series models have limitations when demographic structure changes or unusual shocks occur.
 
 ## References
+Agarwal, S., Qian, W., Sing, T. F., & Tan, P. L. (2017). Dragon babies. Working paper.
+
+Chen, M., Yip, P. S. F., & Yap, M. T. (2018). Identifying the most influential groups in determining Singapore’s fertility. Journal of Social Policy, 47(1), 139–160. https://doi.org/10.1017/S0047279417000241
+
+Singapore Department of Statistics. (2023). Births And Fertility Rates, Annual (2026) [Dataset]. data.gov.sg. Retrieved June 8, 2026 from https://data.gov.sg/datasets/d_e39eeaeadb571c0d0725ef1eec48d166/view
+
+Singapore Department of Statistics. (2023). Indicators On Population, Annual (2026) [Dataset]. data.gov.sg. Retrieved June 8, 2026, from https://data.gov.sg/datasets/d_3d227e5d9fdec73f3bcadce671c333a6/view
 
 ## Appendix
 
-```{r}
+### 1. Time series notation and transformations
+
+Let \(X_t\) denote an annual time series observed at year \(t\). In this report, \(X_t\) represents either Total Fertility Rate (TFR) or Total Live Births (TLB). Since both series showed trend behaviour and changing variance, the log transformation was applied:
+
+\[
+Y_t = \log(X_t).
+\]
+
+The backshift operator \(B\) is defined as:
+
+\[
+B Y_t = Y_{t-1}.
+\]
+
+First differencing was used to remove trend:
+
+\[
+\nabla Y_t = Y_t - Y_{t-1} = (1-B)Y_t.
+\]
+
+Second differencing was also considered:
+
+\[
+\nabla^2 Y_t = (1-B)^2Y_t.
+\]
+
+To assess possible period-12 dependence, the following transformed series was also inspected:
+
+\[
+(1-B^{12})(1-B)Y_t.
+\]
+
+Although the data are annual, the period-12 structure was considered because of the 12-year Chinese zodiac cycle.
+
+### 2. Autocorrelation and partial autocorrelation
+
+For a stationary time series \(Y_t\), the autocovariance function at lag \(h\) is:
+
+\[
+\gamma(h) = \text{Cov}(Y_t, Y_{t-h}).
+\]
+
+The autocorrelation function (ACF) is:
+
+\[
+\rho(h) = \frac{\gamma(h)}{\gamma(0)}.
+\]
+
+The ACF measures linear dependence between observations \(h\) time periods apart.
+
+The partial autocorrelation function (PACF) measures the correlation between \(Y_t\) and \(Y_{t-h}\) after removing the linear effects of the intermediate lags \(1,2,\ldots,h-1\). In this report, ACF and PACF plots were used to identify remaining dependence after transformation and to guide ARIMA and SARIMA model specification.
+
+### 3. KPSS stationarity test
+
+The Kwiatkowski-Phillips-Schmidt-Shin (KPSS) test was used to assess stationarity. The null hypothesis of the KPSS test is that the series is stationary around a constant or deterministic trend. The alternative hypothesis is that the series is non-stationary.
+
+The test is based on the decomposition:
+
+\[
+Y_t = \mu_t + \epsilon_t,
+\]
+
+where \(\mu_t\) is a level or trend component and \(\epsilon_t\) is a stationary error term.
+
+The KPSS statistic is calculated using the partial sums of residuals:
+
+\[
+S_t = \sum_{i=1}^{t} \hat{\epsilon}_i.
+\]
+
+The test statistic is:
+
+\[
+KPSS = \frac{1}{T^2 \hat{\sigma}^2} \sum_{t=1}^{T} S_t^2,
+\]
+
+where \(T\) is the sample size and \(\hat{\sigma}^2\) is an estimate of the long-run variance.
+
+A small p-value provides evidence against stationarity. In this report, the KPSS test was used to compare the original, logged, log-first-differenced and log-second-differenced series.
+
+### 4. ARIMA model
+
+An ARIMA\((p,d,q)\) model is written as:
+
+\[
+\phi(B)(1-B)^dY_t = c + \theta(B)\varepsilon_t,
+\]
+
+where:
+
+\[
+\phi(B) = 1 - \phi_1B - \phi_2B^2 - \cdots - \phi_pB^p
+\]
+
+is the autoregressive polynomial, and:
+
+\[
+\theta(B) = 1 + \theta_1B + \theta_2B^2 + \cdots + \theta_qB^q
+\]
+
+is the moving average polynomial.
+
+The error term \(\varepsilon_t\) is assumed to be white noise:
+
+\[
+\varepsilon_t \sim WN(0,\sigma^2).
+\]
+
+Here, \(p\) is the autoregressive order, \(d\) is the order of differencing, and \(q\) is the moving average order. Differencing is used to make the transformed series approximately stationary before fitting the ARMA structure.
+
+### 5. SARIMA model
+
+A SARIMA\((p,d,q)(P,D,Q)_s\) model extends ARIMA by including dependence at a specified period \(s\). In this report, \(s=12\), corresponding to the 12-year Chinese zodiac cycle.
+
+The general SARIMA model is:
+
+\[
+\phi(B)\Phi(B^s)(1-B)^d(1-B^s)^DY_t
+=
+c + \theta(B)\Theta(B^s)\varepsilon_t,
+\]
+
+where:
+
+\[
+\Phi(B^s) = 1 - \Phi_1B^s - \Phi_2B^{2s} - \cdots - \Phi_PB^{Ps}
+\]
+
+is the seasonal autoregressive polynomial, and:
+
+\[
+\Theta(B^s) = 1 + \Theta_1B^s + \Theta_2B^{2s} + \cdots + \Theta_QB^{Qs}
+\]
+
+is the seasonal moving average polynomial.
+
+The selected final model was:
+
+\[
+SARIMA(1,2,1)(1,0,0)_{12}.
+\]
+
+For this model, \(p=1\), \(d=2\), \(q=1\), \(P=1\), \(D=0\), \(Q=0\), and \(s=12\). Therefore, the model can be written as:
+
+\[
+(1-\phi_1B)(1-\Phi_1B^{12})(1-B)^2Y_t
+=
+c + (1+\theta_1B)\varepsilon_t.
+\]
+
+This model was selected for both TFR and TLB because it passed residual autocorrelation checks and produced the lowest testing-period forecast errors among the viable candidate models.
+
+### 6. Model estimation
+
+The ARIMA and SARIMA models were estimated using maximum likelihood estimation. Under the assumption of normally distributed innovations,
+
+\[
+\varepsilon_t \sim N(0,\sigma^2),
+\]
+
+the likelihood function represents the probability of observing the data given the model parameters. The maximum likelihood estimates are the parameter values that maximise this likelihood, or equivalently maximise the log-likelihood:
+
+\[
+\ell(\theta) = \log L(\theta),
+\]
+
+where \(\theta\) represents the model parameters, including AR coefficients, MA coefficients, seasonal coefficients and the innovation variance.
+
+Models were compared using information criteria and testing-period forecast accuracy. The information criteria used were AIC, AICc and BIC.
+
+The Akaike Information Criterion is:
+
+\[
+AIC = -2\ell + 2k,
+\]
+
+where \(\ell\) is the maximised log-likelihood and \(k\) is the number of estimated parameters.
+
+The corrected Akaike Information Criterion is:
+
+\[
+AICc = AIC + \frac{2k(k+1)}{T-k-1},
+\]
+
+where \(T\) is the sample size.
+
+The Bayesian Information Criterion is:
+
+\[
+BIC = -2\ell + k\log(T).
+\]
+
+Lower AIC, AICc and BIC values indicate better in-sample fit after penalising model complexity. However, because the candidate models included different orders of differencing, these criteria were treated as supporting evidence rather than the sole basis for final model selection.
+
+### 7. Ljung--Box portmanteau test
+
+The Ljung--Box portmanteau test was used to test whether the residuals from a fitted model were approximately white noise. The null hypothesis is that the residual autocorrelations up to lag \(m\) are jointly zero:
+
+\[
+H_0: \rho_1 = \rho_2 = \cdots = \rho_m = 0.
+\]
+
+The alternative hypothesis is that at least one residual autocorrelation is non-zero.
+
+The Ljung--Box test statistic is:
+
+\[
+Q = T(T+2)\sum_{h=1}^{m}\frac{\hat{\rho}_h^2}{T-h},
+\]
+
+where \(T\) is the sample size, \(m\) is the number of lags tested, and \(\hat{\rho}_h\) is the sample autocorrelation of the residuals at lag \(h\).
+
+Under the null hypothesis, the statistic is approximately distributed as:
+
+\[
+Q \sim \chi^2_{m-k},
+\]
+
+where \(k\) is the number of estimated AR and MA parameters. A small p-value indicates remaining residual autocorrelation, meaning the model has not fully captured the dependence structure in the data. In this report, models with Ljung--Box p-values greater than 0.05 were treated as viable.
+
+### 8. Forecast accuracy measures
+
+Forecast accuracy was assessed on the testing period from 2013--2024. Let \(X_t\) be the observed value and \(\hat{X}_t\) be the forecast value. The forecast error is:
+
+\[
+e_t = X_t - \hat{X}_t.
+\]
+
+The Root Mean Squared Error (RMSE) is:
+
+\[
+RMSE = \sqrt{\frac{1}{n}\sum_{t=1}^{n} e_t^2}.
+\]
+
+The Mean Absolute Error (MAE) is:
+
+\[
+MAE = \frac{1}{n}\sum_{t=1}^{n}|e_t|.
+\]
+
+The Mean Absolute Percentage Error (MAPE) is:
+
+\[
+MAPE = \frac{100}{n}\sum_{t=1}^{n}\left|\frac{e_t}{X_t}\right|.
+\]
+
+Lower values of RMSE, MAE and MAPE indicate better forecast accuracy. RMSE penalises larger errors more heavily, while MAE gives the average absolute size of the forecast errors. MAPE expresses the error as a percentage of the observed value, making it easier to compare relative forecast accuracy across series.
+
+### 9. Residual diagnostic plots
+
+Residual diagnostic plots were used to visually assess the selected TFR and TLB models. The residual time plots were used to check whether the residuals fluctuated around zero without a clear trend. The residual ACF plots were used to check for remaining autocorrelation. The histograms were used to assess the approximate distribution of the residuals.
+
+For both selected models, the residuals fluctuate around zero and the residual ACF plots show no strong systematic autocorrelation pattern, supporting the Ljung--Box test results used in the main report.
+
+
+```{r fig.cap= "Residual diagnostics for selected TFR model"}
 fit_tfr |>
   select(tfr_sar_121_100_log) |>
-  gg_tsresiduals() +
-  labs(title = "Residual diagnostics for selected TFR model")
+  gg_tsresiduals()
 
 ```
 
 
 
 
-```{r}
+```{r fig.cap="Residual diagnostics for selected TLB model"}
 fit_tlb |>
   select(tlb_sar_121_100_log) |>
-  gg_tsresiduals() +
-  labs(title = "Residual diagnostics for selected TLB model")
+  gg_tsresiduals() 
 ```
