@@ -147,14 +147,6 @@ was based on AIC and forecast accuracy over the 2013-2024 period.
 Forecast accuracy was assessed with RMSE and MAE, with formulas provided
 in the appendix.
 
-- So informed decision to try ARMIA (12,x, y) and SARIMA models
-  potentially
-
-| Series | Models |
-|------------------------------------|------------------------------------|
-| TFR | SARIMA(0,1,1)(1,0,0)[12], SARIMA(1,1,1)(1,0,0)[12], SARIMA(1,2,1)(1,0,0)[12] |
-| TLB | SARIMA(0,1,1)(1,0,0)[12], SARIMA(1,1,1)(1,0,0)[12], SARIMA(0,2,1)(1,0,0)[12] |
-
 ## Results
 
 The ACF and PACF plots of the log-first-differenced series are shown in
@@ -587,7 +579,7 @@ final_model_tfr |>
   labs(y = "Total Fertility Rate", x = "Year")
 ```
 
-Figure 5 shows a plot of the chosen model for the TFR series, SARIMA(1,2,1)(1,0,0)[12], vs the actual observed data from 2000 to 2024. The black line is the observed data and the blue line is our predicted value for each year. The shaded blue area is our 80& prediction interval and shows the model forecast along with any uncertainity from the model. This figure supports the forecast accuracy results from Table 4 As we can see that our model correctly forecasts the continual fall of the fertility rate during the testing period. However, the model does not perfectly match each year to year movement, and should be interpreted as being able to capture the general trend of the data downwards. 
+Figure 5 shows a plot of the chosen model for the TFR series, SARIMA(1,2,1)(1,0,0)[12], vs the actual observed data from 2000 to 2024. The black line is the observed data and the blue line is our predicted value for each year. The shaded blue area is our 80% prediction interval and shows the model forecast along with any uncertainity from the model. This figure supports the forecast accuracy results from Table 4 As we can see that our model correctly forecasts the continual fall of the fertility rate during the testing period. However, the model does not perfectly match each year to year movement, and should be interpreted as being able to capture the general trend of the data downwards. 
 
 ```{r fig.cap="Selected TLB model forecast vs observed (2000–2024)"}
 final_model_tlb |>
@@ -595,11 +587,28 @@ final_model_tlb |>
   labs(y = "Total Live Births", x = "Year")
 ```
 
-Figure 6 follows the same style as Figure 5 but is for the TLB series
-instead. We can see that the SARIMA model correctly predicts much of
-the trends in the TLB series. We can also use this plot to inform why
-it did not predict the TLB series perfectly and what factors can
-affect the TLB series outside of a traditional time series model analysis. 
+Figure 6 compares our selected model, SARIMA(1,2,1)(1,0,0)[12], with
+the observed data from 2000 to 2024. The model forecasts a
+stabilisation in the TLB series, however, the observed series falls between 2021 and 2024. This shows that TLB is harder to forecast than TFR due to the chance that there may be more demographic variables which affect TLB that cannot be captured by a univariate time series model.
+
+Overall, Figures 5 and 6 supports our final model choice of SARIMA(1,2,1)(1,0,0)[12] for both series. The model passed the residual autocorrelation test and had the best testing sample forecast accuracy  values out of our viable models. 
+
+## Discussion
+The main finding of this analysis is that a SARIMA(1,2,1)(1,0,0)[12] is the preferred forecasting model for both TFR and TLB. The selection of a model with second differencing suggests that the decline of Singaporean birth rate and fertility is not just linear. Instead the decline appears to have steepened. This is evident in Figures 1 and 2, where the decline is especially pronounced in recent years. The $d=2$ specification was able to react to the steepening decline better than the $d=1$ was. Models which use $d=1$ are generally more conservative and do not react as steeply. This could be an explanation for why our second-differenced model performed better for this short-term forecasting problem but we have to keep in mind that the model may be not as realistic over longer horizons. This is the general trade-off of using second-differencing: improved short-term responsiveness with the cost of stability in the long-term.
+
+The model forecasts TFR more accurately than TLB. TLB being all the total live births in Singapore means that it is affected by total population and overall fluctuations in other demographic factors than just the birth rate. TFR is a more representative of the proportion of the population and is a rate which means that it follows a smoother demographic trend rather than just population size. Therefore, a good model predicting overall fertility rates can still deviate when predicting total births as there are more variables.
+
+We see this the sharp decline can be attributed to the overall shock from COVID-19 and the affect on immigration into Singapore
+
+
+
+
+stop of immigration during covid effects TLB not TFR. 
+## Conclusion
+
+## References
+
+## Appendix
 
 ```{r}
 fit_tfr |>
@@ -609,20 +618,12 @@ fit_tfr |>
 
 ```
 
+
+
+
 ```{r}
 fit_tlb |>
   select(tlb_sar_121_100_log) |>
   gg_tsresiduals() +
   labs(title = "Residual diagnostics for selected TLB model")
 ```
-
-
-## Discussion
-
-
-stop of immigration during covid effects TLB not TFR. 
-## Conclusion
-
-## References
-
-## Appendices if applicable.
