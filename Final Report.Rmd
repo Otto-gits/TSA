@@ -34,20 +34,19 @@ BFR <- BFR |>
     names_from = DataSeries,     
     values_from = Value   ) |>   
   as_tsibble(index = Year)
-
-BFR <- BFR |>
-  mutate(
-    d_log_TFR = difference(log(TFR), differences = 1),
-    d_log_TLB = difference(log(TLB), differences = 1)
-  )
 ```
 
 ## Abstract
 
 ## Introduction
 
-**Can time series models trained on data from 1960–2012 accurately
-forecast Singapore's continuing fertility decline over 2013–2024?**
+Singapore has long experienced a long-term decline in fertility of its population. This has many knock on affects to the economic and social structures of the country. Decreasing fertility can raise concerns about an ageing population, lack of labour supply and demographic sustainability. Therefore forecasting fertility is important for the governments future understanding of policy and planning. 
+
+This report focuses on two annual time series, Total Fertility Rate and Total Live Births. These series will be henceforth refered to as TFR and TLB respectively. TFR is the number of children an average woman would have in her lifetime if she experienced current age specific fertility rates. TLB is the total number of live births experienced in Singapore over the time period, in our case a year. TFR reflects overall fertility more directly, whereas TLB is affected by population size, marital rates, immigration and other demographic factors. 
+
+This leads us to our research question of **Can time series models trained on data from 1960–2012 accurately forecast Singapore's continuing fertility decline over 2013–2024?** 
+
+ARIMA and SARIMA models are used as they can 
 
 TO INLCUDE WHEN INTRODUCTION IS DONE
 
